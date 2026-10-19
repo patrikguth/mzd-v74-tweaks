@@ -129,8 +129,8 @@ A collection of tweaks and modifications for the Mazda infotainment system (CMU 
 - For each tweak, choose **Continue** or **Skip**, then **Install** or **Uninstall**, then **OK** (or **Exit** to skip the remaining tweaks).
 - The system reboots at the end, but only if something was changed.
 - Everything is checked with md5 before any change: the script itself (`fuel-consumption.sh.md5`), every file it brings (`*.md5`), and the exact original on the head unit. Backups: `<file>.org` and `/jci/sm/*.fuelend-orig`. On an error, that tweak is restored.
-- While it runs, the script renames `mp3/` to `mp3_off/` on the USB drive, so the head unit does not jump back to the JCI Test Mode after HOME. It renames it back at the end. Only if a restore failed ("Do NOT reboot") does it stay `mp3_off`: then rename it back to `mp3` on your PC before the next run.
-- At the end, remove the USB drive. If nothing was changed, press HOME to leave the terminal.
+- While it runs, the script renames `mp3/` to `mp3_off/` on the USB drive, so the head unit does not jump back to the JCI Test Mode after you leave the terminal. It renames it back at the end. Only if a restore failed ("Do NOT reboot") does it stay `mp3_off`: then rename it back to `mp3` on your PC before the next run.
+- At the end, remove the USB drive. If nothing was changed, type `exit` to leave the terminal (the HOME button does not work there).
 - Log: `logs/fuel-consumption.log`.
 - Details, checksums, how to rebuild the shim or re-create the JS files: [docs/fuel-consumption.md](docs/fuel-consumption.md).
 

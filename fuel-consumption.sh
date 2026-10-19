@@ -37,9 +37,10 @@ echo "=== Fuel Consumption tweaks start ==="
 date
 
 # Rename the mp3 folder while the script runs, so the head unit does not jump back to
-# the JCI test mode after HOME. It is renamed back at the end (the USB drive is removed
-# then), except after a failed restore: then the drive stays in the head unit for the
-# logs, and mp3_off keeps it out of the test mode. Rename it back on your PC then.
+# the JCI test mode after you leave the terminal. It is renamed back at the end (the USB
+# drive is removed then), except after a failed restore: then the drive stays in the head
+# unit for the logs, and mp3_off keeps it out of the test mode. Rename it back on your PC
+# then.
 if [ -d "${MP}/mp3" ]
 then
   mv "${MP}/mp3" "${MP}/mp3_off" && sync
@@ -483,7 +484,7 @@ then
 else
   echo "=== Fuel Consumption tweaks complete, nothing changed ==="
   mp3_back
-  info "Nothing was changed.\nRemove the USB drive.\nThen press HOME to leave the terminal."
+  info "Nothing was changed.\nRemove the USB drive.\nThen type exit to leave the terminal."
   sleep 15
   dialog_kill
 fi
