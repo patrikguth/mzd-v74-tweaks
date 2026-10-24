@@ -10,6 +10,9 @@ name: Release
 # The ZIP also contains the OEM Android Auto Mods (android-auto.sh): the shims and the
 # config files of the oem-aa-mod release pinned below are downloaded, checked against the
 # release's SHA256SUMS and put into jci-shims/ (libpatch-*.so) and config/ (resources/*).
+#
+# The release notes list the commits since the previous tag and the contributors as
+# @mentions (build/contributors.sh): ours for this release and those of the oem-aa-mod release.
 on:
   push:
     tags:
@@ -113,13 +116,31 @@ jobs:
             sort -V | tail -n 1 || true)
           range="$SHA"
           [ -n "$prev" ] && range="$prev..$SHA"
+
+          # Contributors (commit authors and co-authors) as @mentions: GitHub shows them with
+          # their avatars under the release. Our commits in this release, and everyone who
+          # contributed to the included oem-aa-mod release.
+          mentions() { sed 's/^/@/' | paste -sd, - | sed 's/,/, /g'; }
+          contributors=$(sh build/contributors.sh "$GITHUB_REPOSITORY" "$SHA" "$prev" | mentions) ||
+            { echo "::warning::Could not list the contributors"; contributors=""; }
+          oem_contributors=$(sh build/contributors.sh "$OEM_AA_MOD_REPO" "$OEM_AA_MOD_TAG" | mentions) ||
+            { echo "::warning::Could not list the oem-aa-mod contributors"; oem_contributors=""; }
+
           notes="dist/release-notes.md"
           {
             echo "## Changes"
             echo
             git log --no-merges --format='- %s' "$range"
             echo
-            echo "Includes OEM Android Auto Mods [${OEM_AA_MOD_TAG}](https://github.com/${OEM_AA_MOD_REPO}/releases/tag/${OEM_AA_MOD_TAG})."
+            if [ -n "$contributors" ]; then
+              echo "## Contributors"
+              echo
+              echo "$contributors"
+              echo
+            fi
+            echo "## OEM Android Auto Mods"
+            echo
+            echo "Includes [OEM Android Auto Mods ${OEM_AA_MOD_TAG}](https://github.com/${OEM_AA_MOD_REPO}/releases/tag/${OEM_AA_MOD_TAG})${oem_contributors:+ by $oem_contributors}."
           } > "$notes"
           cat "$notes"
 
