@@ -115,5 +115,16 @@ else:
     assert 'Saved to USB:' in job(['job-output',token,'stdout'])
     assert job(['job-output',token,'stderr'])==''
     assert not (state/'active-job').exists()
+    # A nested installer still exports at the originating USB root.
+    nested = usb / 'nested installer'
+    shutil.copytree(usb / 'lib', nested / 'lib')
+    shutil.copytree(usb / 'tweaks/logs-collector', nested / 'tweaks/logs-collector')
+    before = set((usb / 'exports/logs-collector').glob('*-complete'))
+    result = subprocess.run([SHELL, bp(nested / 'tweaks/logs-collector/run.sh'), 'run'],
+                            env=env, capture_output=True, text=True, timeout=20)
+    assert result.returncode == 0, (result.stdout, result.stderr)
+    created = set((usb / 'exports/logs-collector').glob('*-complete')) - before
+    assert len(created) == 1 and bp(next(iter(created))) in result.stdout
+    assert not (nested / 'exports').exists()
     assert original=={p.relative_to(source).as_posix():p.read_bytes() for p in source.rglob('*') if p.is_file()}
 print('EXPORT_COMMANDS_PASSED:',checks,'entrypoint checks, read-only sources, USB-only unique outputs, ZIP validation/failure and live jobs.')

@@ -12,3 +12,9 @@ The installed indicator records installation, not whether the network or SSH por
 is currently reachable. Uninstall removes this tweak's service and startup changes.
 Uninstall and Restore originals remove the automatic Wi-Fi behavior, but do not
 switch off an existing connection. An unrelated SSH listener is not replaced.
+
+Action reports and `run.log` are saved on the originating USB under
+`reports/ssh/<action>-<timestamp>-<unique>/`.
+
+Optional SSH runtime logs use `reports/ssh/runtime-<timestamp>-<unique>/run.log`
+on an attached USB containing the matching `mzd-ssh-log-marker.txt`.

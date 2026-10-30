@@ -217,7 +217,7 @@ ssh_prepare() {
         mv "$_stage" "$SERVICE" || mzd_fail 'Cannot publish SSH service directory.'
     fi
 
-    cp "$PAYLOAD/usb-log-marker.txt" "$USB/diffpatch-ssh-log-marker.txt" || mzd_fail 'Cannot save USB runtime-log marker.'
+    cp "$PAYLOAD/usb-log-marker.txt" "$USB/mzd-ssh-log-marker.txt" || mzd_fail 'Cannot save USB runtime-log marker.'
 }
 
 

@@ -72,11 +72,11 @@ case "$1" in
         rmdir "$SERVICE" || fail 'Service directory could not be removed.'
         # Remove the now-empty owned parent, retaining any other tweak folders.
         rmdir "$(dirname "$SERVICE")" 2>/dev/null || :
-        if [ -n "${MZD_USB:-}" ] && [ -f "$MZD_USB/diffpatch-ssh-log-marker.txt" ] &&
-            [ ! -L "$MZD_USB/diffpatch-ssh-log-marker.txt" ] && cmp -s "$MZD_USB/diffpatch-ssh-log-marker.txt" "$HERE/assets/usb-log-marker.txt"; then
-            cp "$MZD_USB/diffpatch-ssh-log-marker.txt" "$MZD_RESET_DIR/usb-log-marker.txt" &&
-                cmp -s "$MZD_USB/diffpatch-ssh-log-marker.txt" "$MZD_RESET_DIR/usb-log-marker.txt" || fail 'Cannot archive USB log marker.'
-            rm -f "$MZD_USB/diffpatch-ssh-log-marker.txt" || fail 'Cannot remove owned USB log marker.'
+        if [ -n "${MZD_USB:-}" ] && [ -f "$MZD_USB/mzd-ssh-log-marker.txt" ] &&
+            [ ! -L "$MZD_USB/mzd-ssh-log-marker.txt" ] && cmp -s "$MZD_USB/mzd-ssh-log-marker.txt" "$HERE/assets/usb-log-marker.txt"; then
+            cp "$MZD_USB/mzd-ssh-log-marker.txt" "$MZD_RESET_DIR/usb-log-marker.txt" &&
+                cmp -s "$MZD_USB/mzd-ssh-log-marker.txt" "$MZD_RESET_DIR/usb-log-marker.txt" || fail 'Cannot archive USB log marker.'
+            rm -f "$MZD_USB/mzd-ssh-log-marker.txt" || fail 'Cannot remove owned USB log marker.'
         fi
         printf 'Managed SSH payload removed; native OEM SSH is unchanged.\n'
         ;;

@@ -51,7 +51,7 @@ for scenario in ['success','invalid-path','hook-stop-failure','bad-oem','unknown
     service.mkdir(parents=True)
     for name in ['service.sh','sshd_config','password.hash']:shutil.copyfile(assets/name,service/name)
     write(service/'enabled','enabled\n');write(runtime/'owned','fixture\n')
-    shutil.copyfile(assets/'usb-log-marker.txt',usb/'diffpatch-ssh-log-marker.txt')
+    shutil.copyfile(assets/'usb-log-marker.txt',usb/'mzd-ssh-log-marker.txt')
     write(hook,hook.read_text().replace('SERVICE=/tmp/mnt/resources/mzd-tweaks/ssh','SERVICE='+shlex.quote(bp(service))).replace('RAM=/tmp/mzd-aio-ssh','RAM='+shlex.quote(bp(runtime))).replace('TARGET=/jci/scripts/stage_wifi.sh','TARGET='+shlex.quote(bp(second))).replace('mzd_system_remount_rw /tmp/mnt/resources','mzd_system_remount_rw '+shlex.quote(bp(resources))))
     manifest=usb/'tweaks/restore-originals/manifest.conf';write(manifest,manifest.read_text().replace('target=/jci','target='+bp(internal)))
     for lib in (usb/'lib').glob('*.sh'):
@@ -133,9 +133,9 @@ esac
     if scenario in ['success','missing-payload-file','missing-target','delete-failure']:
       for path,(original,_) in values.items():assert path.read_text()==original,(scenario,path)
       assert not service.exists() and not runtime.exists()
-      assert not (usb/'diffpatch-ssh-log-marker.txt').exists()
+      assert not (usb/'mzd-ssh-log-marker.txt').exists()
       if scenario!='delete-failure':assert all(not Path(str(p)+'.org').exists() for p in values)
-      archives=list(usb.glob('reports/diffpatch/restore-originals-*/files'))
+      archives=list(usb.glob('reports/restore-originals/run-*/files'))
       assert len(archives)==1
       if managed:
         assert not entry.exists()

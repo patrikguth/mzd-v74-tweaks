@@ -15,7 +15,7 @@ The launcher requires a second confirmation before Run. Direct shell invocation
    their OEM provenance cannot be authenticated. A mismatched known hash blocks
    the entire operation before changes. There is no automatic firmware conversion.
 4. Check USB space, then archive current contents and `.org` contents under
-   `reports/diffpatch/restore-originals-<timestamp>-<pid>/files/<index>/`.
+   `reports/restore-originals/run-<timestamp>-<unique>/files/<index>/`.
    `plan.tsv` and `target.path` map each index to its original path. A missing
    target gets `before.absent` instead of `before.data`.
 5. Run each registered reset hook's prepare phase to archive and stop managed

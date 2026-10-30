@@ -56,3 +56,6 @@ Upstream license: AGPL-3.0-or-later, included as LICENSE and in the source ZIP.
 The service has `reset_board=yes`: a library/process failure can restart the
 CMU. A copied file/header check cannot prove runtime compatibility. Never reboot
 after a critical installer error; inspect the USB report first.
+
+Action reports and `run.log` are saved on the originating USB under
+`reports/cluster-language/<action>-<timestamp>-<unique>/`.

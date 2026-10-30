@@ -20,5 +20,7 @@ Current included tweaks support firmware 74.00.324. The native Lua launcher,
 persistent SSH lifecycle and selected patches have been tested on a vehicle.
 The latest status batching and layout changes still need vehicle confirmation.
 See the repository's user guide for operation and troubleshooting.
-Launcher logs: installer-logs/. Action reports: reports/diffpatch/.
+Launcher logs: installer-logs/. Action reports: reports/<tweak-id>/<action>-<timestamp>-<unique>/.
+SSH runtime logs: reports/ssh/runtime-<timestamp>-<unique>/.
+Command exports: exports/<tweak-id>/.
 No temporary diagnostic SSH server or notebook public key is included.

@@ -51,7 +51,7 @@ The fingerprint binds the ID, version, firmware, target path, expected OEM hash
 and observed file hash. Changing the target definition, backup expectation or
 file contents since the offer requires a fresh confirmation.
 Current and original files are archived and verified on the originating USB in
-`reports/diffpatch/restore-file-<id>-.../files/1/`, with hashes and the target path.
+`reports/restore-file-<id>/restore-original-.../files/1/`, with hashes and the target path.
 Free space is checked before the internal filesystem is remounted writable.
 Reports use atomically created unique folders so a reset CMU clock or repeated
 process ID cannot reuse an earlier report's rollback state or overwrite archives.

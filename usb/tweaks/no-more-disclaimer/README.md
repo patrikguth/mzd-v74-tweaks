@@ -9,3 +9,6 @@ this tweak; the installer offers Restart when leaving.
 Normal uninstall removes this tweak while preserving unrelated changes where
 possible. If installation is refused, read the displayed reason. Restore originals
 resets all patches on affected files, not just this tweak.
+
+Action reports and `run.log` are saved on the originating USB under
+`reports/no-more-disclaimer/<action>-<timestamp>-<unique>/`.

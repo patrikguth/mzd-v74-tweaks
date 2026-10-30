@@ -25,7 +25,7 @@ with tempfile.TemporaryDirectory(prefix='mzd-ssh-test-') as temporary:
     shutil.copytree(root / 'tweaks/ssh/assets', service)
     usb, ram, proc, bins = temp / 'usb', temp / 'runtime', temp / 'proc', temp / 'bin'
     bins.mkdir(); proc.mkdir()
-    write(usb / 'diffpatch-ssh-log-marker.txt', 'MZD-AIO-SSH-v1\n')
+    write(usb / 'mzd-ssh-log-marker.txt', 'MZD-AIO-SSH-v1\n')
     write(service / 'enabled', 'enabled\n')
     account, mounts, saved = temp / 'passwd', temp / 'mounts', temp / 'factory-saved'
     original = 'cmu:$5$fake$factory:0:0:CMU:/tmp/root:/bin/sh\nother:x:10:10:Other:/:/bin/false\n'
@@ -178,7 +178,7 @@ esac
         assert stop.returncode == 0, output + errors
         assert account.read_text() == original and not ram.exists()
         assert not chain.exists() and not jump.exists()
-        assert list((usb / 'reports').glob('ssh-*/run.log'))
+        assert list((usb / 'reports/ssh').glob('runtime-*/run.log'))
     finally:
         if background.poll() is None:
             subprocess.run([args.bash, str(service / 'service.sh'), 'stop'], capture_output=True, timeout=20)

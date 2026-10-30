@@ -130,7 +130,7 @@ esac
     assert not target.exists() and not store.exists()
     call(['action','configured','install',*args]); assert target.read_text().strip()=='30 false large'
     saved=store/'configured/package/settings.conf'; assert saved.read_text()=='log_limit_mb=30\ncompress=false\nprofile=large\n'
-    reports=list(usb.glob('reports/diffpatch/configured-*/settings.conf'))
+    reports=list(usb.glob('reports/configured/install-*/settings.conf'))
     assert reports and reports[0].read_text()==saved.read_text()
     call(['action','configured','install',*args])
     call(['action','configured','install','log_limit_mb=40'],1)

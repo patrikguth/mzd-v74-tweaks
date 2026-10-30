@@ -92,7 +92,7 @@ awk -v p="$3" -v mode="$2" '{$4=($2==p?(mode=="rw,remount"?"rw":"ro"):$4);print}
     assert offered[0]=='available' and re.fullmatch('[0-9a-f]{32}',offered[1]) and offered[2]==bp(target)+'\n'
     BASE_TOKEN=offered[1]
     restore();assert target.read_text()==original and not backup.exists();clean()
-    archives=list(usb.glob('reports/diffpatch/restore-file-fixture-*/files/1'))
+    archives=list(usb.glob('reports/restore-file-fixture/restore-original-*/files/1'))
     assert len(archives)==1 and (archives[0]/'before.data').read_text()==foreign and (archives[0]/'original.data').read_text()==original
     prepare();write(mounts,mounts.read_text().replace('/dev/ffx01p1','/dev/mmcblk0p1'))
     unchanged_check();restore();assert target.read_text()==original and not backup.exists();clean()
@@ -205,12 +205,12 @@ awk -v p="$3" -v mode="$2" '{$4=($2==p?(mode=="rw,remount"?"rw":"ro"):$4);print}
     # A reset clock and reused PID must never overwrite previous USB archives.
     prepare()
     write(bins/'date','#!/bin/sh\necho 20000101-000000\n')
-    restore();reports=list(usb.glob('reports/diffpatch/restore-file-fixture-20000101-000000-*'))
+    restore();reports=list(usb.glob('reports/restore-file-fixture/restore-original-20000101-000000-*'))
     assert len(reports)==1;folder=reports[0]/'files/1'
     saved={p:p.read_bytes() for p in folder.iterdir() if p.is_file()}
     prepare();write(target,'another foreign edit\n');token=unchanged_check().stdout.split('\t')[1];restore(token=token)
     assert target.read_text()==original and not backup.exists()
-    assert len(list(usb.glob('reports/diffpatch/restore-file-fixture-20000101-000000-*')))==2
+    assert len(list(usb.glob('reports/restore-file-fixture/restore-original-20000101-000000-*')))==2
     assert saved=={p:p.read_bytes() for p in folder.iterdir() if p.is_file()};clean()
     (bins/'date').unlink()
     # Symlinks are refused where the host supports creating them.

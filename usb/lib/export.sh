@@ -80,8 +80,8 @@ mzd_export_main() {
     trap 'exit 130' INT
     trap 'exit 143' TERM
     case ",$EXPORT_MODE," in *,ro,*) mount -o rw,remount "$EXPORT_MOUNT" || return 1; EXPORT_USB_CHANGED=1 ;; esac
-    mkdir -p "$ROOT/exports/$ID" || return 1
-    EXPORT_PARTIAL=$(mktemp -d "$ROOT/exports/$ID/$(date +%Y%m%d-%H%M%S)-XXXXXX") || return 1
+    mkdir -p "$EXPORT_MOUNT/exports/$ID" || return 1
+    EXPORT_PARTIAL=$(mktemp -d "$EXPORT_MOUNT/exports/$ID/$(date +%Y%m%d-%H%M%S)-XXXXXX") || return 1
     EXPORT_OUTPUT="$EXPORT_PARTIAL-complete"
     printf 'Installer version: %s\nExport source: %s\nOriginating USB: %s\n' "${MZD_INSTALLER_VERSION:-unknown}" "$APP" "$EXPORT_MOUNT" > "$EXPORT_PARTIAL/run.log"
     if [ -n "${MZD_SETTINGS_FILE:-}" ] && [ -s "$MZD_SETTINGS_FILE" ]; then

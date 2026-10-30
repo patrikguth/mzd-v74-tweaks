@@ -78,6 +78,11 @@ anything. The manifest never substitutes for runtime checks.
 progress/result text. stderr explains failures. Critical errors explicitly say
 not to reboot. Signals/transport loss are not successful outcomes.
 
+Action reports use `reports/<tweak-id>/<action>-<timestamp>-<unique>/` on the
+originating USB, with `run.log` and `status.txt`. The result displays that same
+directory. Saved packages retain their bundled helper version for removal; older
+installed packages may still use their original report layout until reinstalled.
+
 The worker owns target locks, prerequisites, exact patch application, backups,
 rollback, mount/watchdog restoration and reports. Tweaks touching the same target
 share a lock. Unified patches must contain exactly one relative `target.data`

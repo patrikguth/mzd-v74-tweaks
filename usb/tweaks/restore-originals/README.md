@@ -9,7 +9,7 @@ other installers. Use a tweak's Uninstall button to remove just that tweak.
 This is not a factory reset and does not reset personal settings or firmware.
 
 Current files and backups are archived on USB under
-`reports/diffpatch/restore-originals-.../`. Internal `.org` backups are deleted
+`reports/restore-originals/run-.../`. Internal `.org` backups are deleted
 only after restoration and cleanup are verified. Keep power and USB connected.
 
 Restore cannot fix unsupported firmware, missing hardware, changes without a
