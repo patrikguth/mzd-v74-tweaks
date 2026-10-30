@@ -72,7 +72,9 @@ with tempfile.TemporaryDirectory(prefix='cmu-manifest-') as temporary:
     # Test the real installer adapter; it validates and forwards the same raw data.
     usb = base / 'usb'; (usb / 'lib').mkdir(parents=True)
     shutil.copyfile(ROOT / 'usb/installer.sh', usb / 'installer.sh')
-    shutil.copyfile(ROOT / 'usb/lib/manifest.sh', usb / 'lib/manifest.sh')
+    for name in ['manifest.sh', 'version.sh']:
+        shutil.copyfile(ROOT / 'usb/lib' / name, usb / 'lib' / name)
+    shutil.copyfile(ROOT / 'usb/VERSION', usb / 'VERSION')
     folder = usb / 'tweaks/list-beep'; folder.mkdir(parents=True)
     (folder / 'manifest.conf').write_text(original, encoding='utf-8', newline='\n')
     for args, expected in [(['list'], 'list-beep\n'), (['manifest', 'list-beep'], original)]:

@@ -33,6 +33,21 @@ with tempfile.TemporaryDirectory(prefix='cmu-logging-') as directory:
         config.write_text(value + '\n')
         assert parse().returncode != 0, value
     assert not (base / 'injection').exists()
+    # Release metadata is literal and safe to insert in HTML and log headers.
+    version_helper = shlex.quote(bp(ROOT / 'usb/lib/version.sh'))
+    def release():
+        return subprocess.run([SHELL, '-c', '. ' + version_helper +
+            '; mzd_installer_version ' + shlex.quote(bp(base))],
+            capture_output=True, text=True, timeout=10)
+    assert release().stdout == 'unknown\n'
+    for value, expected in [('0.9.0\n', '0.9.0'), ('1.2.3\r\n', '1.2.3'),
+                            ('$(touch injection)\n', 'unknown'),
+                            ('0.9.0\nextra\n', 'unknown'), ('', 'unknown')]:
+        (base / 'VERSION').write_bytes(value.encode())
+        result = release()
+        assert result.returncode == 0 and result.stdout == expected + '\n', result
+    assert not (base / 'injection').exists()
+
     source = (ROOT / 'usb/autorun.sh').read_text()
     save = source[source.index('save_logs() {'):source.index('\nnative_surface() {')]
     state = base / 'state'; state.mkdir()

@@ -17,6 +17,7 @@ def write(path, data):
 
 with tempfile.TemporaryDirectory(prefix='cmu-metrics-') as folder:
     base=Path(folder); usb=base/'usb'; lib=usb/'lib'; lib.mkdir(parents=True)
+    shutil.copyfile(ROOT/'usb/lib/version.sh', lib/'version.sh')
     bins=base/'bin'; bins.mkdir()
     proc=base/'stat'; dfdata=base/'df-data'
     write(proc, 'cpu  100 10 40 700 50 20 30 50 999 999\ncpu0 0 0 0 0\n')
