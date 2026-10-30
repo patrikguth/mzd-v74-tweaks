@@ -27,6 +27,9 @@ with tempfile.TemporaryDirectory(prefix='cmu-manifest-') as temporary:
     literal = 'Literal = # "quote" \\path $(touch ' + shlex.quote(bp(marker)) + ') `touch ' + shlex.quote(bp(marker)) + '`'
     cases = [
         ('ordinary', original, True),
+        ('contributors literal', original+'contributors=Original author; '+literal+'\n', True),
+        ('contributors empty', original+'contributors=\n', True),
+        ('contributors duplicate', original+'contributors=A\ncontributors=B\n', False),
         ('reset options', original+'confirmation=Reset all?\nrefresh_all=true\nreset_entrypoint=reset.sh\n', True),
         ('invalid refresh', original+'refresh_all=yes\n', False),
         ('invalid reset path', original+'reset_entrypoint=../run.sh\n', False),

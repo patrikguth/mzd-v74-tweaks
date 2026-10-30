@@ -1,4 +1,4 @@
-param([switch]$NoOpen, [switch]$Settings, [switch]$Restore, [switch]$RestoreDenied, [switch]$BrokenUninstall)
+param([switch]$NoOpen, [switch]$Settings, [switch]$Restore, [switch]$RestoreDenied, [switch]$BrokenUninstall, [switch]$Contributors)
 $ErrorActionPreference = 'Stop'
 if ($Settings -and ($Restore -or $RestoreDenied)) { throw 'Choose either -Settings or -Restore.' }
 if ($BrokenUninstall -and ($Settings -or $Restore -or $RestoreDenied)) { throw 'Choose one preview scenario.' }
@@ -13,6 +13,10 @@ Get-ChildItem (Join-Path $repo 'usb/tweaks') -Directory | ForEach-Object {
 }
 $exampleManifest = Join-Path $repo 'development/examples/settings/manifest.conf'
 $manifests['settings-example'] = [System.IO.File]::ReadAllText($exampleManifest)
+if ($Contributors) {
+    $manifests['settings-example'] += "`ncontributors=Original author: Example Author; installer integration: Another Developer`n"
+    $Settings = $true
+}
 # Embed the real UI and manifests in a disposable, offline browser preview.
 $json = ConvertTo-Json -InputObject $manifests -Compress
 $json = $json.Replace('<', '\u003c')

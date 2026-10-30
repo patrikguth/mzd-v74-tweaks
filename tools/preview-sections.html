@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>MZD Tweaks - Section navigation draft</title><style>
+html,body{margin:0;background:#08090b;color:#f5f5f5;font:18px Arial,sans-serif}button{color:inherit;font-family:inherit;cursor:pointer}#screen{position:relative;width:800px;height:480px;background:#101114;overflow:hidden}header{height:80px;border-bottom:3px solid #b21b32;padding:18px 26px;box-sizing:border-box;font-size:29px;letter-spacing:2px}.background{padding:24px;color:#888}.background div{padding:12px;border-bottom:1px solid #41434a}.shade{position:absolute;inset:0;background:rgba(0,0,0,.8)}#dialog{position:absolute;left:38px;top:27px;width:720px;height:424px;background:#1b1c21;border:1px solid #6c6e75;border-top:4px solid #c7213d}h1{position:absolute;left:24px;top:15px;margin:0;font-size:25px;font-weight:normal}.dot{display:inline-block;width:13px;height:13px;border:1px solid #a5a7ae;border-radius:8px;background:#777b84;margin-right:12px}#position{position:absolute;right:24px;top:23px;font-size:13px;color:#b8bac2}#sections{position:absolute;left:24px;right:24px;top:61px;bottom:83px;overflow:hidden}.section{display:block;box-sizing:border-box;width:100%;margin-bottom:6px;padding:10px 14px;text-align:left;border:1px solid #41434a;border-left:3px solid #8b1d31;background:#24252b;font-size:17px;line-height:23px;white-space:normal}.section strong{display:block;font-size:12px;line-height:17px;letter-spacing:1px;color:#b8bac2;margin-bottom:5px}.section:focus{outline:3px solid white;outline-offset:-4px;background:#481923;border-left-color:#ec2848}.setting-value{float:right;color:white;font-size:19px}.help{display:block;font-size:14px;color:#c2c3ca;margin-top:5px}#actions{position:absolute;left:24px;right:24px;bottom:18px;height:47px;border-top:1px solid #393b44;padding-top:12px}#actions button{width:180px;height:46px;font-size:20px;border:1px solid #54565c;background:#25262a}#actions button:focus{outline:3px solid white;outline-offset:-4px}#install{float:right;background:#a01830!important;border-color:#ee3e5b!important}footer{position:absolute;bottom:12px;left:24px;right:24px;font-size:12px;color:#9699a2}footer span{float:right}#desktop-help{max-width:760px;margin:16px 24px;color:#b8bac2;font-size:14px;line-height:22px}
+</style></head><body><div id="screen"><header>MZD Tweaks</header><div class="background">Interface??System<div>Instrument Cluster / HUD Language</div><div>No More Disclaimer</div><div>Shorter List Delay</div></div><footer>Select a tweak<span>V0.9.0</span></footer><div class="shade"></div>
+<div id="dialog"><h1><i class="dot"></i>Instrument Cluster / HUD Language</h1><span id="position"></span><div id="sections">
+<button class="section"><strong>STATUS</strong>Not installed</button>
+<button class="section"><strong>DESCRIPTION</strong>Show navigation street names on supported instrument clusters and head-up displays, including when the CMU uses another language</button>
+<button class="section"><strong>BEFORE INSTALLING</strong>Available features depend on your vehicle's hardware. Check the compatibility information before continuing</button>
+<button class="section"><strong>COMPATIBILITY</strong>This example demonstrates a longer detail view. No hardware checks or vehicle changes are performed in this preview</button>
+<button class="section" id="language"><strong>SETTING: DISPLAY LANGUAGE</strong>Language <span class="setting-value" id="language-value">English</span><span class="help">Press to select the language used for navigation information</span></button>
+<button class="section" id="street"><strong>SETTING: STREET NAMES</strong>Show street names <span class="setting-value" id="street-value">On</span><span class="help">Press to turn this example setting on or off</span></button>
+<button class="section"><strong>RESTART</strong>Restart your Mazda system after installation to activate the changes</button>
+<button class="section"><strong>TWEAK INFORMATION</strong>Version: 0.1.0 | Firmware: 74.00.324<br>Type: patch | Category: Interface</button>
+</div><div id="actions"><button id="back">Back</button><button id="install">Install</button></div></div></div><p id="desktop-help">LOCAL DESIGN DRAFT ? no shell commands or installation<br>Use the mouse, Tab, arrow keys or M/N (controller rotation) to jump between sections and the action buttons. Enter selects a setting. Long content moves into view automatically; no scrolling gesture is needed</p>
+<script>
+(function(){
+ var sections=document.getElementById('sections'),rows=sections.getElementsByTagName('button'),all=[],i,language=0,on=true;
+ for(i=0;i<rows.length;i++)all.push(rows[i]);
+ all.push(document.getElementById('back'));all.push(document.getElementById('install'));
+ function reveal(node){
+  var index=all.indexOf(node);document.getElementById('position').textContent=index<rows.length?(index+1)+' / '+rows.length:'';
+  if(index>=rows.length)return;
+  var top=node.offsetTop,bottom=top+node.offsetHeight;
+  if(top<sections.scrollTop)sections.scrollTop=top;
+  else if(bottom>sections.scrollTop+sections.clientHeight)sections.scrollTop=bottom-sections.clientHeight;
+ }
+ for(i=0;i<all.length;i++)all[i].onfocus=function(){reveal(this);};
+ document.onkeydown=function(e){var key=e.keyCode,delta=0;if(key===77||key===39||key===40)delta=1;if(key===78||key===37||key===38)delta=-1;if(delta){e.preventDefault();var index=all.indexOf(document.activeElement);all[(index+delta+all.length)%all.length].focus();}if(key===27||key===8){e.preventDefault();document.getElementById('back').focus();}};
+ document.getElementById('language').onclick=function(){language=(language+1)%3;document.getElementById('language-value').textContent=['English','German','Polish'][language];};
+ document.getElementById('street').onclick=function(){on=!on;document.getElementById('street-value').textContent=on?'On':'Off';};
+ document.getElementById('back').onclick=function(){all[0].focus();};
+ document.getElementById('install').onclick=function(){document.getElementById('position').textContent='Design only';};
+ all[0].focus();
+}());
+</script></body></html>

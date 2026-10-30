@@ -90,3 +90,12 @@ button:focus{outline:3px solid #fff;outline-offset:-4px}button:active{background
 #list-position{position:absolute;right:23px;top:159px;bottom:54px;width:4px;pointer-events:none}
 .list-segment{position:absolute;left:0;width:4px;background:#41434a}
 .list-segment.active{background:#d02b45}
+
+#dialog-contributors:empty{display:none}
+
+/* Keep attribution and technical metadata together in one navigation stop. */
+.section-list #dialog-meta .meta-row{width:50%;margin:0;padding:0 10px 3px 0;white-space:normal}
+.section-list #dialog-meta .meta-row:last-child{width:100%}
+.section-list #dialog-state:empty{display:none}
+#dialog-heading.detail-heading{font-size:21px;line-height:25px;white-space:normal;max-height:50px}
+#dialog-body.section-list{top:74px}

@@ -21,27 +21,35 @@
         node.onfocus=function(){revealSection(node);};
     }
     function text(id, value) {
-        var headings={"dialog-state":"STATUS","dialog-description":"DESCRIPTION","dialog-output":"DETAILS"};
+        var headings={"dialog-state":"DETAILS","dialog-description":"DESCRIPTION","dialog-output":"DETAILS","dialog-contributors":"CONTRIBUTORS"};
         if(dialogMode!=="details" || !headings[id]){el(id).textContent=value;return;}
         var area=el(id),remaining=String(value||""),part,cut,line,button;
         clear(area);
         // Small focusable sections keep every line reachable without touch scrolling.
         while(remaining){
-            cut=remaining.length>160?remaining.lastIndexOf(" ",160):remaining.length;
-            if(cut<40)cut=Math.min(160,remaining.length);
+            cut=remaining.length>360?remaining.lastIndexOf(" ",360):remaining.length;
+            if(cut<40)cut=Math.min(360,remaining.length);
             else if(cut<remaining.length)cut++;
-            line=remaining.indexOf("\n");
-            if(line>=0 && line<cut)cut=line+1;
+            // Limit explicit line breaks without turning blank paragraphs into sections.
+            line=0;
+            for(var breaks=0;breaks<6;breaks++){
+                line=remaining.indexOf("\n",line);
+                if(line<0 || line>=cut)break;
+                if(breaks===5)cut=line+1;
+                line++;
+            }
             part=remaining.substring(0,cut);remaining=remaining.substring(cut);
+            if(!trim(part))continue;
             button=document.createElement("button");button.textContent=part;
-            section(button,area.firstChild?"CONTINUED":headings[id]);area.appendChild(button);
+            section(button,headings[id]);area.appendChild(button);
         }
     }
     function show(id, visible) { el(id).className = visible ? el(id).className.replace(/\bhidden\b/g, "") : el(id).className.replace(/\bhidden\b/g, "") + " hidden"; }
     function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
     function setDialogMode(mode) {
         dialogMode=mode;
-        if (mode!=="details") {show("restore-action",false);show("uninstall-action",false);clear(el("dialog-settings"));}
+        el("dialog-heading").className=mode==="details"?"detail-heading":"";
+        if (mode!=="details") {el("dialog-meta").tabIndex=-1;show("restore-action",false);show("uninstall-action",false);clear(el("dialog-settings"));clear(el("dialog-contributors"));}
     }
     function trim(value) { return String(value || "").replace(/^\s+|\s+$/g, ""); }
     function supported(item, action) { return item.manifest.actions.indexOf(action) !== -1; }
@@ -283,7 +291,7 @@
         });
     }
     function parseManifest(id, raw) {
-        var m = {}, lines = raw.split("\n"), fields = "contract_version id name description version type group firmware entrypoint actions target oem_backup_md5 lock_group status_scope reboot_required requires conflicts progress confirmation refresh_all reset_entrypoint settings shim_service shim_asset shim_path shim_extra_targets shim_checks components".split(" ");
+        var m = {}, lines = raw.split("\n"), fields = "contract_version id name description version type group firmware entrypoint actions target oem_backup_md5 lock_group status_scope reboot_required requires conflicts progress confirmation refresh_all reset_entrypoint settings shim_service shim_asset shim_path shim_extra_targets shim_checks components contributors".split(" ");
         for (var n = 0; n < lines.length; n++) {
             var line = lines[n].replace(/\r$/, "");
             if (/[\x00-\x1f\x7f]/.test(line)) throw new Error("Manifest contains control characters.");
@@ -412,10 +420,10 @@
         });
     }
     function addMeta(key, value) {
-        var row = document.createElement("button"), title = document.createElement("span"), content = document.createElement("span");
+        var row = document.createElement("div"), title = document.createElement("span"), content = document.createElement("span");
         row.className = "meta-row"; title.className = "meta-key"; title.textContent = key + ":";
         content.textContent = typeof value === "object" ? JSON.stringify(value) : String(value);
-        row.appendChild(title); row.appendChild(content); section(row,"TWEAK INFORMATION"); el("dialog-meta").appendChild(row);
+        row.appendChild(title); row.appendChild(content); el("dialog-meta").appendChild(row);
         return content;
     }
     function openDetails(item) {
@@ -425,14 +433,15 @@
         text("back","Back"); el("back").onclick=closeDialog;
         el("dialog-body").className = "section-list";
         selected = item; returnFocusId = "tweak-" + item.id; setDialogMode("details");
-        text("dialog-title", item.name); el("dialog-dot").className = "dot " + item.state;
-        text("dialog-state", itemLabel(item) + (item.error ? "\n" + item.error : ""));
+        text("dialog-title", item.name+" - "+itemLabel(item)); el("dialog-dot").className = "dot " + item.state;
+        text("dialog-state",item.error || "");
         var description = item.manifest.description || "Manifest could not be loaded.";
         if (item.manifest.type === "patch" || item.manifest.type === "service" || item.manifest.type === "files") {
             if (item.state === "broken" || (item.state === "unavailable" && /target|patch|file|content|incompatible/i.test(item.error || ""))) description += "\n\nUse System > Restore originals, then retry.\nThis resets ALL patches on affected files.";
         }
         text("dialog-description", description);
         clear(el("dialog-settings")); clear(el("dialog-meta")); text("dialog-output", "");
+        el("dialog-meta").className="";el("dialog-meta").tabIndex=0;section(el("dialog-meta"),"TWEAK INFORMATION");
         // Present the manifest information needed to choose an action. Patch
         // hashes, lock names and internal file paths remain worker concerns.
         var versionMeta = item.manifest.version !== undefined ? addMeta("Version",item.manifest.version) : null;
@@ -447,6 +456,7 @@
         if (item.manifest.firmware !== undefined) addMeta("Firmware",Array.isArray(item.manifest.firmware) ? item.manifest.firmware.join(", ") : item.manifest.firmware);
         if (item.manifest.type !== undefined) addMeta("Type",item.manifest.type);
         if (!item.invalid) addMeta("Category",groupName(item.group));
+        if(item.manifest.contributors)addMeta("Contributors",item.manifest.contributors);
         if (item.manifest.reboot_required !== undefined) addMeta("Restart required",item.manifest.reboot_required ? "Yes (after exit)" : "No");
         show("back",true); show("action",true); show("result-ok",false); show("overlay",true);
         el("dialog-body").scrollTop = 0;

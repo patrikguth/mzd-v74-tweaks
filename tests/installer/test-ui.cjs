@@ -20,10 +20,10 @@ function boot(manifestVersion,includeCommand,keepDisclaimer,includeExports,inclu
   if(includeBundle)states['bundle-example']='uninstalled';
   const doc={activeElement:null,createElement(t){return new Node(t,doc);},getElementById(id){return nodes[id]||walk(nodes.app).concat(walk(nodes.overlay)).find(n=>n.id===id)||null;}};
   function walk(n){return [n].concat(n.children.flatMap(walk));}
-  for(const id of ['app','header','system-info','tabs','content','cards','empty','footer-status','list-position','refresh','exit','overlay','dialog','dialog-heading','dialog-dot','dialog-title','dialog-body','dialog-state','dialog-description','dialog-settings','dialog-meta','dialog-output','dialog-actions','back','uninstall-action','restore-action','action','result-ok','transport']){nodes[id]=new Node('div',doc);nodes[id].id=id;}
+  for(const id of ['app','header','system-info','tabs','content','cards','empty','footer-status','list-position','refresh','exit','overlay','dialog','dialog-heading','dialog-dot','dialog-title','dialog-body','dialog-state','dialog-description','dialog-settings','dialog-contributors','dialog-meta','dialog-output','dialog-actions','back','uninstall-action','restore-action','action','result-ok','transport']){nodes[id]=new Node('div',doc);nodes[id].id=id;}
   for(const id of ['refresh','exit','back','uninstall-action','restore-action','action','result-ok'])nodes[id].tagName='button';
   nodes.app.appendChild(nodes.header);nodes.header.appendChild(nodes.refresh);nodes.header.appendChild(nodes.exit);nodes.app.appendChild(nodes.tabs);nodes.app.appendChild(nodes.content);nodes.content.appendChild(nodes.cards);
-  nodes.overlay.appendChild(nodes.dialog);nodes.dialog.appendChild(nodes['dialog-body']);for(const id of ['dialog-state','dialog-description','dialog-settings','dialog-meta','dialog-output'])nodes['dialog-body'].appendChild(nodes[id]);nodes.dialog.appendChild(nodes['dialog-actions']);for(const id of ['back','uninstall-action','restore-action','action','result-ok'])nodes['dialog-actions'].appendChild(nodes[id]);
+  nodes.overlay.appendChild(nodes.dialog);nodes.dialog.appendChild(nodes['dialog-body']);for(const id of ['dialog-state','dialog-description','dialog-settings','dialog-contributors','dialog-meta','dialog-output'])nodes['dialog-body'].appendChild(nodes[id]);nodes.dialog.appendChild(nodes['dialog-actions']);for(const id of ['back','uninstall-action','restore-action','action','result-ok'])nodes['dialog-actions'].appendChild(nodes[id]);
   nodes['restore-action'].className='hidden';nodes['uninstall-action'].className='hidden';
   nodes.overlay.className='hidden';nodes['result-ok'].className='primary hidden';
   nodes.transport.contentWindow={postMessage(job,origin){assert.equal(origin,'http://127.0.0.1:1234');jobs.push(job);}};
@@ -53,7 +53,7 @@ function boot(manifestVersion,includeCommand,keepDisclaimer,includeExports,inclu
     if(a[0]==='job-status'){polls++;return ok(polls===1?'running\n0\n0\nCreating archive\n':polls===2?'running\n5\n10\nCopying files\n':'done\n'+(outcomes[background]||0)+'\n');}
     if(a[0]==='job-output')return ok(a[2]==='stdout'?'Saved to USB: /mnt/sdb1/exports/'+background:'');
     if(a[0]==='list')return ok((includeBundle?'bundle-example\n':'')+(includeSettings?'settings-example\n':'')+'list-beep\nmain-menu-loop\nssh\nbroken\n'+(includeCommand?'hello\n':'')+(includeExports?'backup-jci\nlogs-collector\nrestore-originals\n':''));
-    if(a[0]==='manifest'){if(a[1]==='bundle-example')return ok(fs.readFileSync(path.join(ROOT,'../development/examples/bundle/manifest.conf'),'utf8'));if(a[1]==='settings-example')return ok(fs.readFileSync(path.join(ROOT,'../development/examples/settings/manifest.conf'),'utf8'));if(a[1]==='broken')return ok('{broken');let m=fs.readFileSync(a[1]==='hello'?path.join(ROOT,'../development/examples/hello/manifest.conf'):path.join(ROOT,'tweaks',a[1],'manifest.conf'),'utf8');if(manifestVersion)m=m.replace(/^contract_version=.*$/m,'contract_version='+manifestVersion);return ok(m);}
+    if(a[0]==='manifest'){if(a[1]==='bundle-example')return ok(fs.readFileSync(path.join(ROOT,'../development/examples/bundle/manifest.conf'),'utf8'));if(a[1]==='settings-example')return ok(fs.readFileSync(path.join(ROOT,'../development/examples/settings/manifest.conf'),'utf8'));if(a[1]==='broken')return ok('{broken');let m=fs.readFileSync(a[1]==='hello'?path.join(ROOT,'../development/examples/hello/manifest.conf'):path.join(ROOT,'tweaks',a[1],'manifest.conf'),'utf8');if(a[1]==='list-beep')m+='contributors=Original author; port by Example <developer>\n';if(manifestVersion)m=m.replace(/^contract_version=.*$/m,'contract_version='+manifestVersion);return ok(m);}
     if(a[0]==='statuses')return ok(a[1].split(' ').map(id=>id+'\t'+(states[id]==='error'?'error':states[id])+'\t'+(states[id]==='error'?'Patch state is ambiguous.':['unavailable','broken'].includes(states[id])?(reasons[id]||''):'' )+'\n').join(''));
     if(a[2]==='status')return states[a[1]]==='error'?ok('',1,'Patch state is ambiguous.'):ok(states[a[1]]+'\n',0,['unavailable','broken'].includes(states[a[1]])?(reasons[a[1]]||''):'');
     const code=outcomes[a[1]]||0;
@@ -143,10 +143,10 @@ const top=x.nodes['dialog-body'].scrollTop;
 controller('onkeydown',40);assert.equal(x.doc.activeElement,x.nodes.action);
 controller('onkeydown',38);assert.equal(x.doc.activeElement,x.nodes.back);
 controller('onkeydown',77);controller('onkeydown',77);
-assert.equal(x.doc.activeElement,x.nodes['dialog-state'].children[0]);
+assert.equal(x.doc.activeElement,x.nodes['dialog-description'].children[0]);
 const section=x.doc.activeElement;section.offsetParent=x.nodes['dialog-body'];section.offsetTop=300;section.offsetHeight=70;x.nodes['dialog-body'].clientHeight=200;
 section.onfocus();assert.equal(x.nodes['dialog-body'].scrollTop,170);
-controller('onkeydown',77);assert.equal(x.doc.activeElement,x.nodes['dialog-description'].children[0]);
+controller('onkeydown',77);assert.equal(x.doc.activeElement,x.nodes['dialog-meta']);
 controller('onkeydown',8);assert(!x.nodes.overlay.className.includes('hidden'));
 controller('onkeyup',8);assert(x.nodes.overlay.className.includes('hidden'));
 // Back cannot dismiss an in-flight operation or skip result acknowledgement.
@@ -338,7 +338,7 @@ function recoveryOffer(raw='available\t'+'a'.repeat(32)+'\t/jci/test.js\n') {
   r.nodes.tabs.children.find(n=>n.textContent.indexOf('Interface')===0).onclick();
   r.click('tweak-list-beep');r.pump();return r;
 }
-x=recoveryOffer();assert.equal(x.nodes['dialog-title'].textContent,'No List Beep');
+x=recoveryOffer();assert.equal(x.nodes['dialog-title'].textContent,'No List Beep - Broken installation');
 assert(!x.nodes['restore-action'].className.includes('hidden'));
 assert.equal(x.nodes.action.textContent,'Retry status');
 assert.equal(x.doc.activeElement,x.nodes.back,'Showing Restore must not move focus');
@@ -349,11 +349,11 @@ assert.match(x.nodes['dialog-description'].textContent,/ALL tweaks/);
 assert.match(x.nodes['dialog-description'].textContent,/saved to USB/);
 assert(x.nodes['restore-action'].className.includes('hidden'));
 assert(!x.calls.some(a=>a[0]==='restore-original'));
-x.click('back');x.pump();assert.equal(x.nodes['dialog-title'].textContent,'No List Beep');
+x.click('back');x.pump();assert.equal(x.nodes['dialog-title'].textContent,'No List Beep - Broken installation');
 assert(!x.calls.some(a=>a[0]==='restore-original'));
 x=recoveryOffer();controller('onkeydown',77);assert.equal(x.doc.activeElement,x.nodes['restore-action']);
 controller('onkeydown',13);assert.equal(x.nodes['dialog-title'].textContent,'Restore original file?');
-controller('onkeyup',8);x.pump();assert.equal(x.nodes['dialog-title'].textContent,'No List Beep');
+controller('onkeyup',8);x.pump();assert.equal(x.nodes['dialog-title'].textContent,'No List Beep - Broken installation');
 x=recoveryOffer();x.click('restore-action');x.click('action');x.pump();
 assert.deepEqual(Array.from(x.calls.find(a=>a[0]==='restore-original')),['restore-original','list-beep','a'.repeat(32)]);
 assert.equal(x.nodes['dialog-state'].textContent,'Restore completed');
@@ -363,7 +363,7 @@ x.pump();assert(x.nodes['restore-action'].className.includes('hidden'));
 x=recoveryOffer();x.restoreOutcomes['list-beep']=2;x.click('restore-action');x.click('action');x.pump();
 assert.match(x.nodes['dialog-description'].textContent,/Do NOT reboot/);x.click('result-ok');assert.equal(x.nodes.refresh.disabled,true);
 for(const raw of ['', 'available\tbad-hash\t/jci/test.js\n','available\t'+'a'.repeat(32)+'\t/jci/test.js','available\t'+'a'.repeat(32)+'\t/jci/test.js\nextra\n']) {
-  x=recoveryOffer(raw);assert.match(x.nodes['dialog-description'].textContent,/Restore original unavailable:/);assert.equal(x.nodes['dialog-title'].textContent,'No List Beep');assert(x.nodes['restore-action'].className.includes('hidden'));assert(!x.calls.some(a=>a[0]==='restore-original'));
+  x=recoveryOffer(raw);assert.match(x.nodes['dialog-description'].textContent,/Restore original unavailable:/);assert.equal(x.nodes['dialog-title'].textContent,'No List Beep - Broken installation');assert(x.nodes['restore-action'].className.includes('hidden'));assert(!x.calls.some(a=>a[0]==='restore-original'));
 }
 // Eligibility is not required to arrive before the user navigates elsewhere.
 x=recoveryOffer();x.click('back');x.click('tweak-list-beep');let oldRecovery=x.jobs.shift();x.click('back');x.click('tweak-list-beep');
@@ -376,7 +376,7 @@ assert.equal(x.doc.activeElement,x.nodes.back,'A refused restore check must pres
 x=boot();x.recovery['list-beep']='available\t'+'a'.repeat(32)+'\t/jci/test.js\n';x.outcomes['list-beep']=1;
 x.nodes.tabs.children.find(n=>n.textContent.indexOf('Interface')===0).onclick();x.click('tweak-list-beep');x.click('action');x.pump();
 assert.equal(x.nodes['dialog-title'].textContent,'Operation failed');x.click('result-ok');x.pump();
-assert.equal(x.nodes['dialog-title'].textContent,'No List Beep');assert(!x.nodes['restore-action'].className.includes('hidden'));
+assert.equal(x.nodes['dialog-title'].textContent,'No List Beep - Not installed');assert(!x.nodes['restore-action'].className.includes('hidden'));
 assert(!x.calls.some(a=>a[0]==='restore-original'));
 console.log('TARGET_RECOVERY_UI_PASSED: conditional detail button, preserved focus, no attempted install, explicit confirmation, stale-view guards and critical failures.');
 
@@ -439,8 +439,8 @@ x.click('refresh');x.pump();
 x.nodes.tabs.children.find(n=>n.textContent.indexOf('System')===0).onclick();
 x.click('tweak-ssh');x.pump();
 const chunks=x.nodes['dialog-state'].children;
-assert(chunks.length>3);
-for(const chunk of chunks){assert(chunk.textContent.length<=161);assert.equal(chunk.tagName,'button');}
+assert(chunks.length>1);
+for(const chunk of chunks){assert(chunk.textContent.length<=361);assert.equal(chunk.tagName,'button');}
 assert(x.nodes['dialog-state'].textContent.includes(x.reasons.ssh));
 console.log('DETAIL_SECTIONS_PASSED: bounded sections preserve long diagnostics and use controller focus navigation.');
 
@@ -454,3 +454,12 @@ x.nodes.tabs.children.find(n=>n.textContent.indexOf('System')===0).onclick();
 assert.equal(x.nodes['list-position'].children.length,x.nodes.cards.children.length);
 assert.equal(x.nodes['list-position'].children.filter(n=>n.className.includes('active')).length,1);
 console.log('LIST_POSITION_PASSED: one segment per category entry, one active marker and category rebuild.');
+
+x=boot();x.nodes.tabs.children.find(n=>n.textContent.indexOf('Interface')===0).onclick();x.click('tweak-list-beep');
+assert.match(x.nodes['dialog-meta'].textContent,/Original author; port by Example <developer>/);
+assert.equal(x.nodes['dialog-meta'].tabIndex,0);
+assert.equal(x.nodes['dialog-meta'].getElementsByTagName('button').length,0);
+x.click('back');assert.equal(x.nodes['dialog-contributors'].textContent,'');
+assert.equal(parseConf('list-beep',rawConf+'contributors=Name $(literal) <text>\n').contributors,'Name $(literal) <text>');
+assert.throws(()=>parseConf('list-beep',rawConf+'contributors=A\ncontributors=B\n'));
+console.log('CONTRIBUTORS_PASSED: optional literal attribution, focusable details and stale-view cleanup.');

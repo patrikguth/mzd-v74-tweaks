@@ -166,3 +166,10 @@ transaction. It requires `type=files`, `reset_entrypoint=reset.sh`,
 `reboot_required=true` and `lock_group=sm-config`. It cannot be combined with
 single-shim manifest fields. Component/config-map grammar and lifecycle are
 documented in the [bundle example](examples/bundle/README.md).
+
+## Attribution
+
+Optional `contributors=Original author; port by Another developer` supplies literal
+free text shown in the tweak detail view. It is not shell code or HTML and does
+not affect installation or status checks. Omit it or leave it empty to hide the
+section. Duplicate fields and control characters remain invalid.

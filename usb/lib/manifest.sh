@@ -26,7 +26,7 @@ mzd_manifest_load() {
         mzd_manifest_key=${mzd_manifest_line%%=*}
         mzd_manifest_value=${mzd_manifest_line#*=}
         case "$mzd_manifest_key" in
-            contract_version|id|name|description|version|type|group|firmware|entrypoint|actions|target|oem_backup_md5|lock_group|status_scope|reboot_required|requires|conflicts|progress|confirmation|refresh_all|reset_entrypoint|settings|setting.*|shim_service|shim_asset|shim_path|shim_extra_targets|shim_checks|components) ;;
+            contract_version|id|name|description|version|type|group|firmware|entrypoint|actions|target|oem_backup_md5|lock_group|status_scope|reboot_required|requires|conflicts|progress|confirmation|refresh_all|reset_entrypoint|settings|setting.*|shim_service|shim_asset|shim_path|shim_extra_targets|shim_checks|components|contributors) ;;
             *) mzd_manifest_error "Unknown field: $mzd_manifest_key"; return 1 ;;
         esac
         case "$mzd_manifest_seen" in *" $mzd_manifest_key "*) mzd_manifest_error "Duplicate field: $mzd_manifest_key"; return 1 ;; esac
