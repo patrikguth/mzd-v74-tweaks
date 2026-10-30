@@ -49,9 +49,6 @@ mzd_export_finish() {
         printf 'Incomplete export retained at: %s\n' "$EXPORT_PARTIAL" >&2
     fi
     sync
-    if [ "${EXPORT_USB_CHANGED:-0}" = 1 ] && ! mount -o ro,remount "$EXPORT_MOUNT"; then
-        printf 'Could not restore the USB read-only mount state.\n' >&2; code=1
-    fi
     if [ "$code" = 0 ]; then printf 'Saved to USB: %s\n' "$EXPORT_OUTPUT"; fi
     exit "$code"
 }
@@ -75,11 +72,11 @@ mzd_export_main() {
     fi
     mzd_export_progress 0 0 'Checking source size and USB free space'
     mzd_export_check run || return 1
-    EXPORT_USB_CHANGED=0; EXPORT_PARTIAL=; EXPORT_OUTPUT=
+    EXPORT_PARTIAL=; EXPORT_OUTPUT=
     trap mzd_export_finish 0
     trap 'exit 130' INT
     trap 'exit 143' TERM
-    case ",$EXPORT_MODE," in *,ro,*) mount -o rw,remount "$EXPORT_MOUNT" || return 1; EXPORT_USB_CHANGED=1 ;; esac
+    case ",$EXPORT_MODE," in *,ro,*) mount -o rw,remount "$EXPORT_MOUNT" || return 1 ;; esac
     mkdir -p "$EXPORT_MOUNT/exports/$ID" || return 1
     EXPORT_PARTIAL=$(mktemp -d "$EXPORT_MOUNT/exports/$ID/$(date +%Y%m%d-%H%M%S)-XXXXXX") || return 1
     EXPORT_OUTPUT="$EXPORT_PARTIAL-complete"

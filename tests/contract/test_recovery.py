@@ -86,7 +86,8 @@ awk -v p="$3" -v mode="$2" '{$4=($2==p?(mode=="rw,remount"?"rw":"ro"):$4);print}
         assert not list(locks.iterdir())
         assert gpio.read_text()=='0\n' and other.read_text()=='do not touch\n'
         assert 'forbidden-worker' not in (events.read_text() if events.exists() else '')
-        assert all(' ro ' in line for line in mounts.read_text().splitlines()[:2])
+        assert ' ro ' in mounts.read_text().splitlines()[1], 'Internal mount mode not restored.'
+        assert 'mount ro,remount '+bp(usb) not in (events.read_text() if events.exists() else '')
     prepare()
     offered=unchanged_check().stdout.split('\t')
     assert offered[0]=='available' and re.fullmatch('[0-9a-f]{32}',offered[1]) and offered[2]==bp(target)+'\n'
@@ -183,16 +184,19 @@ awk -v p="$3" -v mode="$2" '{$4=($2==p?(mode=="rw,remount"?"rw":"ro"):$4);print}
             write(bins/'md5sum','#!/bin/sh\n/usr/bin/md5sum "$@" || exit 1\nif [ "$1" = '+shlex.quote(bp(target))+' ] && [ -e '+marker+' ]; then /usr/bin/rm -f '+marker+'; echo late-change > '+shlex.quote(bp(changed))+'; fi\n')
         if scenario=='delete-failure':write(bins/'rm','#!/bin/sh\ncase "$*" in *target.js.org*) exit 1 ;; esac\n/usr/bin/rm "$@"\n')
         if scenario=='usb-cleanup-failure':write(base/'usb-fail','yes')
-        critical=scenario in ['unknown-write','late-target-change','late-backup-change','usb-cleanup-failure']
-        r=restore(2 if critical else 1)
-        assert not r.stdout and ('Do NOT reboot' in r.stderr if critical else True)
+        critical=scenario in ['unknown-write','late-target-change','late-backup-change']
+        r=restore(0 if scenario=='usb-cleanup-failure' else (2 if critical else 1))
+        if scenario=='usb-cleanup-failure':
+            assert 'Original file restored.' in r.stdout and 'Do NOT reboot' not in r.stderr
+        else:
+            assert not r.stdout and ('Do NOT reboot' in r.stderr if critical else True)
         if scenario in ['no-space','archive-failure','write-failure']:assert target.read_text()==foreign and backup.exists()
         if scenario=='delete-failure':assert target.read_text()==original and backup.exists()
         if scenario=='unknown-write':assert target.read_text()=='concurrent-change\n' and backup.exists()
         if scenario=='late-target-change':assert target.read_text()=='late-change\n' and backup.exists()
         if scenario=='late-backup-change':assert target.read_text()==original and backup.read_text()=='late-change\n'
         if scenario=='usb-cleanup-failure':assert target.read_text()==original and not backup.exists()
-        else:clean()
+        clean()
         print('PASS recovery failure handling:',scenario,flush=True)
     for state,expected_hint in [('unavailable',True),('broken',True),('installed',True),('inspection-error',False),('missing-dependency',False)]:
         prepare()

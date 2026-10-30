@@ -98,7 +98,7 @@ Actual MD5: $RECOVERY_BACKUP_HASH"; return 1;
     [ "${#RECOVERY_TOKEN}" = 32 ] || return 1
 }
 mzd_recovery_run() (
-    # The caller restores USB mode after the report lifecycle has finished writing.
+    # Report cleanup restores internal mounts and flushes USB report writes.
     ACTION=restore-original
     mzd_begin "$SELF" "restore-file-$ID" mzd_restore_cleanup
     mzd_system_begin
@@ -160,21 +160,10 @@ mzd_recovery_main() (
     [ "${#confirmed}" = 32 ] || exit 1
     mzd_require_tools cp cmp mktemp df du mv mount sync date || exit 1
     mzd_export_mount || exit 1
-    original_usb_ro=0
-    case ",$EXPORT_MODE," in *,ro,*) original_usb_ro=1 ;; esac
-    # Also restore USB mode if report initialization or a caught signal fails.
-    trap 'code=$?; trap - 0; if [ "$original_usb_ro" = 1 ]; then mount -o ro,remount "$EXPORT_MOUNT" || { printf "USB cleanup failed. Do NOT reboot.\n" >&2; code=2; }; fi; exit "$code"' 0
+    # Leave the USB writable; the report lifecycle flushes its writes.
     trap 'exit 2' INT TERM
     MZD_ORIGIN_USB=$EXPORT_MOUNT; export MZD_ORIGIN_USB
     report=$(mzd_recovery_run "$confirmed"); code=$?
-    if [ "$original_usb_ro" = 1 ]; then
-        if mount -o ro,remount "$EXPORT_MOUNT"; then original_usb_ro=0
-        else
-            printf 'USB cleanup failed. Do NOT reboot.\n' >&2
-            [ -z "$report" ] || printf 'exit_code=2\n' > "$report/status.txt" || :
-            exit 2
-        fi
-    fi
     [ "$code" = 0 ] || exit "$code"
     printf 'Original file restored. ALL patches on this file were removed.\nYou can now retry Install.\nReports: %s\n' "$report"
 )

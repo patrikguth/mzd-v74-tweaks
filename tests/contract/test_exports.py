@@ -42,6 +42,7 @@ with tempfile.TemporaryDirectory(prefix='cmu-export-') as directory:
     # Both target and mock mount paths include no fixed drive-letter assumptions.
     write(bins/'mount', '''#!/bin/sh
 [ "$3" = USB ] || { echo FORBIDDEN_MOUNT >> EVENTS; exit 90; }
+[ "$2" = rw,remount ] || { echo FORBIDDEN_USB_RO >> EVENTS; exit 91; }
 echo mount >> EVENTS
 awk -v mode="$2" '{$4=(mode=="rw,remount"?"rw":"ro"); print}' MOUNTS > NEXT
 mv NEXT MOUNTS
@@ -86,7 +87,7 @@ else:
         assert snapshot=={p.relative_to(usb).as_posix():p.read_bytes() for p in usb.rglob('*') if p.is_file()}
         command(id_,[]); command(id_,['--help']); command(id_,['install'],1)
         r=command(id_,['run']);assert 'Saved to USB:' in r.stdout
-        assert ' ro ' in mounts.read_text()
+        assert ' rw ' in mounts.read_text()
         complete=list((usb/'exports'/id_).glob('*-complete'));assert len(complete)==1
         if id_=='backup-jci':
             with zipfile.ZipFile(complete[0]/'jci.zip') as z:assert z.testzip() is None and len(z.namelist())==2

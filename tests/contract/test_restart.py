@@ -23,7 +23,7 @@ with tempfile.TemporaryDirectory(prefix='cmu-restart-') as folder:
  write(usb/'installer.sh',source.replace('#!/bin/sh\n','#!/bin/sh\n'+prefix,1))
  for name in ['sync','reboot','mount']:
   write(bins/name,'#!/bin/sh\necho '+name+' >> '+shlex.quote(bp(events))+'\n'+
-   ('[ ! -f '+shlex.quote(bp(base/('fail-'+name)))+' ]\n' if name!='sync' else ''))
+   '[ ! -f '+shlex.quote(bp(base/('fail-'+name)))+' ]\n')
  def adapter(args):
   env=dict(os.environ,INSTALLER_STATE=bp(state),INSTALLER_LOG=bp(logs))
   return subprocess.run([SHELL,bp(usb/'installer.sh'),*args],env=env,capture_output=True,text=True,timeout=10)
@@ -40,26 +40,29 @@ with tempfile.TemporaryDirectory(prefix='cmu-restart-') as folder:
  # Exercise the actual finish function without running the vehicle-only bootstrap.
  launcher=(ROOT/'usb/autorun.sh').read_text()
  finish=launcher[launcher.index('finish() {'):launcher.index('\nfail() {')]
- for scenario in ['restart','normal-exit','launcher-error','mount-error','reboot-error']:
+ for scenario in ['restart','normal-exit','launcher-error','usb-ro-unavailable','sync-error','reboot-error']:
   if events.exists():events.unlink()
-  for name in ['fail-mount','fail-reboot']:
+  for name in ['fail-mount','fail-sync','fail-reboot']:
    p=base/name
    if p.exists():p.unlink()
   request=state/'ui-restart'
   if request.exists():request.unlink()
   if scenario!='normal-exit':write(request,'')
-  if scenario in ['mount-error','reboot-error']:write(base/('fail-'+scenario.split('-')[0]),'')
+  if scenario=='usb-ro-unavailable':write(base/'fail-mount','')
+  if scenario=='reboot-error':write(base/'fail-reboot','')
+  if scenario=='sync-error':write(base/'fail-sync','')
   driver=base/'finish.sh'
   write(driver,'#!/bin/sh\nset -u\n'+prefix+
    'STATE='+shlex.quote(bp(state))+'\nHERE='+shlex.quote(bp(usb))+'\n'+
-   'ACTIVE=0; OPERA_PID=; HTTP_PID=; BRIDGE_PID=; USB_CHANGED=1; USB_MOUNT=/fake-usb\n'+
+   'ACTIVE=0; OPERA_PID=; HTTP_PID=; BRIDGE_PID=\n'+
    'checkpoint() { echo checkpoint >> '+shlex.quote(bp(events))+'; }\n'+
    'save_logs() { echo logs >> '+shlex.quote(bp(events))+'; }\n'+finish+'\ntrap finish 0\nexit '+('1' if scenario=='launcher-error' else '0')+'\n')
   result=subprocess.run([SHELL,bp(driver)],capture_output=True,text=True,timeout=10)
   sequence=events.read_text().splitlines()
-  assert result.returncode==(0 if scenario in ['restart','normal-exit'] else 1),(scenario,result.stderr,sequence)
-  if scenario in ['restart','reboot-error']:
-   assert sequence[-3:]==['mount','sync','reboot'],(scenario,sequence)
+  assert result.returncode==(0 if scenario in ['restart','normal-exit','usb-ro-unavailable'] else 1),(scenario,result.stderr,sequence)
+  if scenario in ['restart','reboot-error','usb-ro-unavailable']:
+   assert sequence[-2:]==['sync','reboot'],(scenario,sequence)
    assert sequence.index('logs')<sequence.index('reboot')
   else:assert 'reboot' not in sequence,(scenario,sequence)
-print('RESTART_LIFECYCLE_PASSED: explicit request, active-job refusal, normal Exit, cleanup order, error suppression and reboot failure. No actual restart executed.')
+  assert 'mount' not in sequence, 'USB remount must not block Exit/Restart'
+print('RESTART_LIFECYCLE_PASSED: explicit request, active-job refusal, normal Exit, USB-ro refusal cannot block reboot, flush order, error suppression and reboot failure. No actual restart executed.')

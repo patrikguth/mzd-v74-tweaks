@@ -148,8 +148,10 @@ without the flag do not create a restart recommendation. A critical error blocks
 the Restart choice even if an earlier operation requested one.
 
 Explicit Restart sends a session event over the existing shell bridge. The
-launcher waits for work, closes its own processes, saves logs and restores USB
-mount state before invoking `reboot`. Launcher/cleanup errors suppress reboot.
+launcher waits for work, closes its own processes, saves logs and flushes writes
+before invoking `reboot`. The USB is left writable; no USB read-only remount
+blocks Exit or Restart. Internal filesystem/watchdog cleanup remains required.
+Launcher/cleanup errors suppress reboot.
 There is no SSH dependency. The restart recommendation belongs to the current
 launcher session; installation records are described in Persistent packages. In the offline
 preview this event is simulated; it never restarts the computer.

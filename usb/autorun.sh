@@ -11,7 +11,7 @@ INSTALLER_STATE=$STATE; export INSTALLER_STATE
 LOG_DIR="$HERE/installer-logs/$(date +%Y%m%d-%H%M%S)-$$"
 INSTALLER_LOG=$STATE; export INSTALLER_LOG
 MZD_LOG_LEVEL=debug
-HTTP_PID=''; OPERA_PID=''; ACTIVE=0; USB_CHANGED=0; USB_MOUNT=''
+HTTP_PID=''; OPERA_PID=''; ACTIVE=0
 checkpoint() { printf '%s %s\n' "$(date +%H:%M:%S)" "$*" >> "$STATE/launcher.log"; }
 save_logs() {
   [ "$MZD_LOG_LEVEL" != off ] || return 0
@@ -51,12 +51,10 @@ finish() {
     wait "$HTTP_PID" 2>/dev/null || :
   fi
   checkpoint "Installer closed; exit=$code"; save_logs
-  if [ "$USB_CHANGED" = 1 ]; then
-    if ! mount -o ro,remount "$USB_MOUNT"; then
-      code=1
-      checkpoint 'ERROR: Could not restore USB read-only state.'; save_logs
-      printf 'Could not restore USB read-only state. See installer-logs on USB.\n' >&2
-    fi
+  # Flush even when USB logging is disabled; leave the stick writable.
+  if ! sync; then
+    code=1
+    checkpoint "ERROR: Could not flush filesystem writes."; save_logs
   fi
   if [ "$code" = 0 ] && [ -f "$STATE/ui-restart" ]; then
     # All workers, services owned by the launcher and storage cleanup are done.
@@ -80,8 +78,7 @@ while [ "$MP" != / ]; do
   MP=$(dirname "$MP")
 done
 [ "$MP" != / ] || fail 'Cannot identify USB mount.'
-USB_MOUNT=$MP
-case ",$MODE," in *,ro,*) mount -o rw,remount "$MP" || fail 'Cannot write USB logs.'; USB_CHANGED=1 ;; esac
+case ",$MODE," in *,ro,*) mount -o rw,remount "$MP" || fail 'Cannot write USB logs.' ;; esac
 if [ "$MZD_LOG_LEVEL" != off ]; then
   mkdir -p "$LOG_DIR" || fail 'Cannot create USB logs.'
 fi

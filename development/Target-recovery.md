@@ -58,7 +58,7 @@ process ID cannot reuse an earlier report's rollback state or overwrite archives
 
 The existing same-directory publication and rollback helpers restore the file.
 Only after verification is the internal `.org` removed. Locks, watchdog and mount
-state are cleaned up; USB mode is restored after report writing. Unknown concurrent
+state are cleaned up; USB writes are flushed and the USB remains writable. Unknown concurrent
 edits are not overwritten during rollback. Uncertain rollback/cleanup is critical
 (exit 2). An ordinary failure after commit can leave the original restored and its
 `.org` retained, for example when backup deletion fails; the report states this.

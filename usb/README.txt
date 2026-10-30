@@ -24,3 +24,6 @@ Launcher logs: installer-logs/. Action reports: reports/<tweak-id>/<action>-<tim
 SSH runtime logs: reports/ssh/runtime-<timestamp>-<unique>/.
 Command exports: exports/<tweak-id>/.
 No temporary diagnostic SSH server or notebook public key is included.
+
+The installer leaves its USB writable after actions and Exit; it flushes writes
+before leaving or restarting. System filesystem mount restoration is unchanged.
