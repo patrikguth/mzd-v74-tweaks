@@ -76,14 +76,14 @@ button:focus{outline:3px solid #fff;outline-offset:-4px}button:active{background
 
 /* Focusable detail sections use the same navigation model as the tweak list. */
 #dialog-body.section-list{overflow:hidden;padding-right:0}
-.section-list .dialog-section{display:block;box-sizing:border-box;width:100%;margin:0 0 6px;padding:10px 14px;text-align:left;border:1px solid #41434a;border-left:3px solid #8b1d31;background:#24252b;font:17px/23px Arial,sans-serif;white-space:pre-wrap;word-wrap:break-word}
-.section-list .dialog-section:before{content:attr(data-heading);display:block;font-size:12px;line-height:17px;letter-spacing:1px;color:#b8bac2;margin-bottom:5px}
-.section-list .dialog-section:focus{outline:3px solid white;outline-offset:-4px;background:#481923;border-left-color:#ec2848}
+.section-list .dialog-section{display:block;box-sizing:border-box;width:100%;margin:0 0 4px;padding:6px 8px;text-align:left;border:0;border-bottom:1px solid #34363d;background:#202126;font:17px/23px Arial,sans-serif;white-space:pre-wrap;word-wrap:break-word}
+.section-list .dialog-section:before{content:attr(data-heading);display:block;font-size:12px;line-height:17px;letter-spacing:1px;color:#b8bac2;margin-bottom:3px}
+.section-list .dialog-section:focus{outline:1px solid #50535b;outline-offset:-1px;background:#202126}
 .section-list #dialog-state,.section-list #dialog-description{margin:0}
 .section-list #dialog-output{margin:0}
-.section-list .setting-row{border:1px solid #41434a;border-left:3px solid #8b1d31;background:#24252b;padding:8px 240px 8px 14px;margin-bottom:6px}
-.section-list .setting-controls{right:10px;top:8px}
-.section-list .setting-row:focus{outline:3px solid white;outline-offset:-4px;background:#481923}
+.section-list .setting-row{border:0;border-bottom:1px solid #34363d;background:#202126;padding:5px 232px 5px 8px;margin-bottom:4px}
+.section-list .setting-controls{right:6px;top:5px}
+.section-list .setting-row:focus{outline:1px solid #50535b;outline-offset:-1px;background:#202126}
 
 /* One segment per entry in the current category; only the selected entry is red. */
 #content{right:43px;overflow:hidden}
@@ -99,3 +99,7 @@ button:focus{outline:3px solid #fff;outline-offset:-4px}button:active{background
 .section-list #dialog-state:empty{display:none}
 #dialog-heading.detail-heading{font-size:21px;line-height:25px;white-space:normal;max-height:50px}
 #dialog-body.section-list{top:74px}
+
+/* Text sections are scroll targets, not clickable actions. */
+.section-list button.dialog-section{cursor:default}
+.section-list button.dialog-section:active{background:#202126}
