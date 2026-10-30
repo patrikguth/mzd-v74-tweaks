@@ -154,13 +154,17 @@
     }
     function selectCard(button,index) {
         var markers=el("list-position").children,area=el("content"),i;
-        for(i=0;i<markers.length;i++)markers[i].className="list-segment"+(i===index?" active":"");
+        var active=markers.length===1?100:Math.max(25,150/markers.length),grey=markers.length>1?(100-active)/(markers.length-1):0,gap=Math.min(1.2,20/Math.max(1,markers.length));
+        for(i=0;i<markers.length;i++){
+            markers[i].className="list-segment"+(i===index?" active":"");
+            markers[i].style.top=(i<=index?i*grey:active+(i-1)*grey)+"%";
+            markers[i].style.height=((i===index?active:grey)-gap)+"%";
+        }
         if(button.offsetTop<area.scrollTop)area.scrollTop=button.offsetTop;
         else if(button.offsetTop+button.offsetHeight>area.scrollTop+area.clientHeight)area.scrollTop=button.offsetTop+button.offsetHeight-area.clientHeight;
     }
     function renderCards() {
-        var node = el("cards"),indicator=el("list-position"),count=0,position=0; clear(node);clear(indicator);
-        for(var n=0;n<tweaks.length;n++)if(tweaks[n].group===selectedGroup)count++;
+        var node = el("cards"),indicator=el("list-position"),position=0; clear(node);clear(indicator);
         show("empty", !tweaks.length);
         text("empty", "No tweaks found in the tweaks folder.");
         for (var i = 0; i < tweaks.length; i++) {
@@ -176,11 +180,11 @@
                 card.onclick=function(){selectCard(card,index);openDetails(tweak);};
             }(item,button,position));
             var marker=document.createElement("span");marker.className="list-segment"+(position===0?" active":"");
-            marker.style.top=(position/count*100)+"%";marker.style.height=(70/count)+"%";
             indicator.appendChild(marker);position++;
             item.button = button; item.dot = dot; item.statusNode = state;
             node.appendChild(button); updateCard(item);
         }
+        if(node.firstChild)selectCard(node.firstChild,0);
         el("content").scrollTop = 0; controls();
     }
     function settingDefinitions(raw) {
@@ -387,7 +391,7 @@
         }
         function finish(problem) {
             scanning = false; controls();
-            footer(locked ? "Status failed: " + failedStatusName + ". Do NOT reboot." : problem ? "Could not read installation states" : tweaks.length + " tweaks - select a tweak");
+            footer(locked ? "Status failed: " + failedStatusName + ". Do NOT reboot." : problem ? "Could not read installation states" : "");
             if (closing) return;
             if (dialogMode === "details") openDetails(selected);
             else if (!dialogMode && el("cards").firstChild) el("cards").firstChild.focus();

@@ -450,6 +450,8 @@ assert.equal(x.nodes['list-position'].children.length,x.nodes.cards.children.len
 x.nodes.cards.children[1].onfocus();
 assert.equal(x.nodes['list-position'].children.filter(n=>n.className.includes('active')).length,1);
 assert(x.nodes['list-position'].children[1].className.includes('active'));
+assert(parseFloat(x.nodes['list-position'].children[1].style.height)>parseFloat(x.nodes['list-position'].children[0].style.height));
+assert.equal(x.nodes['footer-status'].textContent,'');
 x.nodes.tabs.children.find(n=>n.textContent.indexOf('System')===0).onclick();
 assert.equal(x.nodes['list-position'].children.length,x.nodes.cards.children.length);
 assert.equal(x.nodes['list-position'].children.filter(n=>n.className.includes('active')).length,1);
@@ -463,3 +465,9 @@ x.click('back');assert.equal(x.nodes['dialog-contributors'].textContent,'');
 assert.equal(parseConf('list-beep',rawConf+'contributors=Name $(literal) <text>\n').contributors,'Name $(literal) <text>');
 assert.throws(()=>parseConf('list-beep',rawConf+'contributors=A\ncontributors=B\n'));
 console.log('CONTRIBUTORS_PASSED: optional literal attribution, focusable details and stale-view cleanup.');
+
+x=boot();
+assert.equal(x.nodes['list-position'].children.length,1);
+assert(Number.isFinite(parseFloat(x.nodes['list-position'].children[0].style.height)));
+assert.equal(parseFloat(x.nodes['list-position'].children[0].style.top),0);
+console.log('DYNAMIC_POSITION_PASSED: enlarged selected segment, finite single-entry geometry and no idle footer prompt.');
