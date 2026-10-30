@@ -53,7 +53,7 @@ function boot(manifestVersion,includeCommand,keepDisclaimer,includeExports,inclu
     if(a[0]==='job-status'){polls++;return ok(polls===1?'running\n0\n0\nCreating archive\n':polls===2?'running\n5\n10\nCopying files\n':'done\n'+(outcomes[background]||0)+'\n');}
     if(a[0]==='job-output')return ok(a[2]==='stdout'?'Saved to USB: /mnt/sdb1/exports/'+background:'');
     if(a[0]==='list')return ok((includeBundle?'bundle-example\n':'')+(includeSettings?'settings-example\n':'')+'list-beep\nmain-menu-loop\nssh\nbroken\n'+(includeCommand?'hello\n':'')+(includeExports?'backup-jci\nlogs-collector\nrestore-originals\n':''));
-    if(a[0]==='manifest'){if(a[1]==='bundle-example')return ok(fs.readFileSync(path.join(ROOT,'../development/examples/bundle/manifest.conf'),'utf8'));if(a[1]==='settings-example')return ok(fs.readFileSync(path.join(ROOT,'../development/examples/settings/manifest.conf'),'utf8'));if(a[1]==='broken')return ok('{broken');let m=fs.readFileSync(a[1]==='hello'?path.join(ROOT,'../development/examples/hello/manifest.conf'):path.join(ROOT,'tweaks',a[1],'manifest.conf'),'utf8');if(a[1]==='list-beep')m+='contributors=Original author; port by Example <developer>\n';if(manifestVersion)m=m.replace(/^contract_version=.*$/m,'contract_version='+manifestVersion);return ok(m);}
+    if(a[0]==='manifest'){if(a[1]==='bundle-example')return ok(fs.readFileSync(path.join(ROOT,'../development/examples/bundle/manifest.conf'),'utf8'));if(a[1]==='settings-example')return ok(fs.readFileSync(path.join(ROOT,'../development/examples/settings/manifest.conf'),'utf8'));if(a[1]==='broken')return ok('{broken');let m=fs.readFileSync(a[1]==='hello'?path.join(ROOT,'../development/examples/hello/manifest.conf'):path.join(ROOT,'tweaks',a[1],'manifest.conf'),'utf8');if(a[1]==='list-beep')m=m.replace(/^contributors=.*\r?\n?/gm,'')+'contributors=Original author; port by Example <developer>\n';if(manifestVersion)m=m.replace(/^contract_version=.*$/m,'contract_version='+manifestVersion);return ok(m);}
     if(a[0]==='statuses')return ok(a[1].split(' ').map(id=>id+'\t'+(states[id]==='error'?'error':states[id])+'\t'+(states[id]==='error'?'Patch state is ambiguous.':['unavailable','broken'].includes(states[id])?(reasons[id]||''):'' )+'\n').join(''));
     if(a[2]==='status')return states[a[1]]==='error'?ok('',1,'Patch state is ambiguous.'):ok(states[a[1]]+'\n',0,['unavailable','broken'].includes(states[a[1]])?(reasons[a[1]]||''):'');
     const code=outcomes[a[1]]||0;
@@ -163,7 +163,8 @@ console.log('MULTICONTROLLER_PASSED: rotate, tilt up/down, Back on release, brow
 const appSource=fs.readFileSync(path.join(ROOT,'ui/app.js'),'utf8');
 const manifestFunction=appSource.slice(appSource.indexOf('    function settingDefinitions('),appSource.indexOf('    function discover('));
 const parseConf=vm.runInNewContext('(function(){function trim(v){return String(v||" ").replace(/^\\s+|\\s+$/g,"");}'+manifestFunction+';return parseManifest;}())');
-const rawConf=fs.readFileSync(path.join(ROOT,'tweaks/list-beep/manifest.conf'),'utf8');
+// Parser cases control attribution explicitly, regardless of current tweak credits.
+const rawConf=fs.readFileSync(path.join(ROOT,'tweaks/list-beep/manifest.conf'),'utf8').replace(/^contributors=.*\r?\n?/gm,'');
 const literal='Text = # "quotes" $(not_a_command) `not_a_command`';
 const parsedConf=parseConf('list-beep',rawConf.replace(/^name=.*$/m,'name='+literal));
 assert.equal(parsedConf.name,literal);assert.equal(parsedConf.actions.join(' '),'install uninstall status');

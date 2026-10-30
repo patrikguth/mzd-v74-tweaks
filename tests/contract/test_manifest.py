@@ -17,6 +17,8 @@ def bp(path):
     return '/' + s[0].lower() + s[2:] if len(s) > 1 and s[1] == ':' else s
 
 original = (ROOT / 'usb/tweaks/list-beep/manifest.conf').read_text(encoding='utf-8')
+# Attribution cases below supply their own field, independent of real credits.
+original = ''.join(line for line in original.splitlines(keepends=True) if not line.startswith('contributors='))
 checks = 0
 with tempfile.TemporaryDirectory(prefix='cmu-manifest-') as temporary:
     base = Path(temporary); file = base / 'manifest.conf'; driver = base / 'read.sh'
