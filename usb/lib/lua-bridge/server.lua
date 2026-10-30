@@ -33,6 +33,7 @@ posix.signal(posix.SIGTERM,function()stopping=true end)
 posix.signal(posix.SIGINT,function()stopping=true end)
 local ready=assert(io.open(readyPath..".tmp","w"));assert(ready:write(port.."\n"..token.."\n"));ready:close()
 assert(os.rename(readyPath..".tmp",readyPath))
+io.stderr:write("Installer version: "..(os.getenv("MZD_INSTALLER_VERSION") or "unknown").."\n")
 io.stderr:write("Lua transport ready; loopback; "..tostring(posix.version).."\n");io.stderr:flush()
 local function send(client,data)
     local index=1

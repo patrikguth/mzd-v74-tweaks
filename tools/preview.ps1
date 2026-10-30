@@ -26,6 +26,9 @@ $settingsDemo = if ($Settings) { 'true' } else { 'false' }
 $recoveryDeniedDemo = if ($RestoreDenied) { 'true' } else { 'false' }
 $recoveryDemo = if ($Restore -or $RestoreDenied) { 'true' } else { 'false' }
 $html = $html.Replace('<link rel="stylesheet" href="style.css">', "<style>$css</style>")
+$installerVersion = [System.IO.File]::ReadAllText((Join-Path $repo 'usb/VERSION')).Trim()
+if ($installerVersion -notmatch '^[0-9]+[.][0-9]+[.][0-9]+$') { throw 'Invalid installer VERSION.' }
+$html = $html.Replace('@INSTALLER_VERSION@', $installerVersion)
 $html = $html.Replace('@ORIGIN@', 'preview').Replace('@TOKEN@', 'preview')
 $html = $html.Replace('<script src="app.js"></script>', "<script>window.previewManifests=$json;window.previewSettingsDemo=$settingsDemo;window.previewBrokenUninstallDemo=$brokenUninstallDemo;window.previewRecoveryDemo=$recoveryDemo;window.previewRecoveryDeniedDemo=$recoveryDeniedDemo;</script><script>$settingsScript</script><script>$mock</script><script>$app</script>")
 $html = $html.Replace('<title>MZD Tweaks</title>', '<title>MZD Tweaks - OFFLINE PREVIEW</title>')

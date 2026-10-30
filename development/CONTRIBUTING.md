@@ -41,3 +41,7 @@ and test UI processing. A green check does not prove arbitrary shell code safe
 or replace code review and a vehicle test. New behavior needs relevant tests,
 not merely a manifest that advertises it. Configure `Validate tweaks / contract`
 as a required check in repository branch protection if merges must be blocked.
+
+The installer release version is maintained in `usb/VERSION` as `major.minor.patch`.
+It is independent of tweak versions and appears in the footer, launcher logs and
+action reports. Update this file when preparing an installer release; no build is needed.

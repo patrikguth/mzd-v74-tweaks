@@ -98,6 +98,7 @@ mzd_begin() {
   exec 3>&1
   exec 4>&2
   exec > "$MZD_REPORT/run.log" 2>&1
+  printf 'Installer version: %s\n' "${MZD_INSTALLER_VERSION:-unknown}"
   trap mzd_finish 0
   trap 'exit 130' INT
   trap 'exit 143' TERM

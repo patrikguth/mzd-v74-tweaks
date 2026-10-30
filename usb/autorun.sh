@@ -4,6 +4,8 @@ set -u
 umask 077
 SELF=$(readlink -f "$0") || exit 1
 HERE=$(dirname "$SELF")
+. "$HERE/lib/version.sh" || exit 1
+MZD_INSTALLER_VERSION=$(mzd_installer_version "$HERE"); export MZD_INSTALLER_VERSION
 STATE=$(mktemp -d /tmp/cmu-installer.XXXXXX) || exit 1
 INSTALLER_STATE=$STATE; export INSTALLER_STATE
 LOG_DIR="$HERE/installer-logs/$(date +%Y%m%d-%H%M%S)-$$"
@@ -83,6 +85,7 @@ case ",$MODE," in *,ro,*) mount -o rw,remount "$MP" || fail 'Cannot write USB lo
 if [ "$MZD_LOG_LEVEL" != off ]; then
   mkdir -p "$LOG_DIR" || fail 'Cannot create USB logs.'
 fi
+checkpoint "Installer version: $MZD_INSTALLER_VERSION"
 checkpoint "USB logging: $MZD_LOG_LEVEL"
 # The styled UI owns the startup notice and Exit. Never block on jci-dialog.
 export XDG_RUNTIME_DIR=/tmp
@@ -111,7 +114,7 @@ case "$PORT" in ''|*[!0-9]*) fail 'Invalid adapter port.' ;; esac
 case "$TOKEN" in ''|*[!0-9a-f]*) fail 'Invalid adapter token.' ;; esac
 mkdir "$STATE/ui" || exit 1
 cp "$HERE/ui/style.css" "$HERE/ui/app.js" "$STATE/ui/" || fail 'Cannot copy menu assets.'
-sed -e "s|@ORIGIN@|http://127.0.0.1:$PORT|g" -e "s|@TOKEN@|$TOKEN|g" "$HERE/ui/index-template.html" > "$STATE/ui/index.html" || fail 'Cannot prepare menu.'
+sed -e "s|@INSTALLER_VERSION@|$MZD_INSTALLER_VERSION|g" -e "s|@ORIGIN@|http://127.0.0.1:$PORT|g" -e "s|@TOKEN@|$TOKEN|g" "$HERE/ui/index-template.html" > "$STATE/ui/index.html" || fail 'Cannot prepare menu.'
 checkpoint 'Launching Secondary Opera'
 (
   cd /jci/opera || exit 1
