@@ -3,7 +3,7 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
 const ROOT=path.join(__dirname,'../../usb');
 class Node {
-  constructor(tag,doc){this.tagName=tag;this.doc=doc;this.children=[];this.className='';this.disabled=false;this.scrollTop=0;this._text='';this.attributes={};}
+  constructor(tag,doc){this.tagName=tag;this.doc=doc;this.children=[];this.className='';this.disabled=false;this.scrollTop=0;this._text='';this.attributes={};this.style={};}
   appendChild(node){this.children.push(node);node.parentNode=this;return node;}
   removeChild(node){this.children.splice(this.children.indexOf(node),1);}
   get firstChild(){return this.children[0]||null;}
@@ -20,10 +20,10 @@ function boot(manifestVersion,includeCommand,keepDisclaimer,includeExports,inclu
   if(includeBundle)states['bundle-example']='uninstalled';
   const doc={activeElement:null,createElement(t){return new Node(t,doc);},getElementById(id){return nodes[id]||walk(nodes.app).concat(walk(nodes.overlay)).find(n=>n.id===id)||null;}};
   function walk(n){return [n].concat(n.children.flatMap(walk));}
-  for(const id of ['app','header','system-info','tabs','content','cards','empty','footer-status','refresh','exit','overlay','dialog','dialog-heading','dialog-dot','dialog-title','dialog-body','dialog-state','dialog-description','dialog-settings','dialog-meta','dialog-output','dialog-actions','back','uninstall-action','restore-action','action','result-ok','transport']){nodes[id]=new Node('div',doc);nodes[id].id=id;}
+  for(const id of ['app','header','system-info','tabs','content','cards','empty','footer-status','list-position','refresh','exit','overlay','dialog','dialog-heading','dialog-dot','dialog-title','dialog-body','dialog-state','dialog-description','dialog-settings','dialog-meta','dialog-output','dialog-actions','back','uninstall-action','restore-action','action','result-ok','transport']){nodes[id]=new Node('div',doc);nodes[id].id=id;}
   for(const id of ['refresh','exit','back','uninstall-action','restore-action','action','result-ok'])nodes[id].tagName='button';
   nodes.app.appendChild(nodes.header);nodes.header.appendChild(nodes.refresh);nodes.header.appendChild(nodes.exit);nodes.app.appendChild(nodes.tabs);nodes.app.appendChild(nodes.content);nodes.content.appendChild(nodes.cards);
-  nodes.overlay.appendChild(nodes.dialog);nodes.dialog.appendChild(nodes['dialog-body']);nodes['dialog-body'].appendChild(nodes['dialog-settings']);nodes.dialog.appendChild(nodes['dialog-actions']);for(const id of ['back','uninstall-action','restore-action','action','result-ok'])nodes['dialog-actions'].appendChild(nodes[id]);
+  nodes.overlay.appendChild(nodes.dialog);nodes.dialog.appendChild(nodes['dialog-body']);for(const id of ['dialog-state','dialog-description','dialog-settings','dialog-meta','dialog-output'])nodes['dialog-body'].appendChild(nodes[id]);nodes.dialog.appendChild(nodes['dialog-actions']);for(const id of ['back','uninstall-action','restore-action','action','result-ok'])nodes['dialog-actions'].appendChild(nodes[id]);
   nodes['restore-action'].className='hidden';nodes['uninstall-action'].className='hidden';
   nodes.overlay.className='hidden';nodes['result-ok'].className='primary hidden';
   nodes.transport.contentWindow={postMessage(job,origin){assert.equal(origin,'http://127.0.0.1:1234');jobs.push(job);}};
@@ -140,8 +140,13 @@ x.nodes.tabs.children.find(n=>n.textContent.indexOf('Interface')===0).onclick();
 x.click('tweak-list-beep');controller('onkeydown',77);assert.equal(x.doc.activeElement,x.nodes.action);
 controller('onkeydown',78);assert.equal(x.doc.activeElement,x.nodes.back);
 const top=x.nodes['dialog-body'].scrollTop;
-controller('onkeydown',40);assert.equal(x.nodes['dialog-body'].scrollTop,top+70);
-controller('onkeydown',38);assert.equal(x.nodes['dialog-body'].scrollTop,top);
+controller('onkeydown',40);assert.equal(x.doc.activeElement,x.nodes.action);
+controller('onkeydown',38);assert.equal(x.doc.activeElement,x.nodes.back);
+controller('onkeydown',77);controller('onkeydown',77);
+assert.equal(x.doc.activeElement,x.nodes['dialog-state'].children[0]);
+const section=x.doc.activeElement;section.offsetParent=x.nodes['dialog-body'];section.offsetTop=300;section.offsetHeight=70;x.nodes['dialog-body'].clientHeight=200;
+section.onfocus();assert.equal(x.nodes['dialog-body'].scrollTop,170);
+controller('onkeydown',77);assert.equal(x.doc.activeElement,x.nodes['dialog-description'].children[0]);
 controller('onkeydown',8);assert(!x.nodes.overlay.className.includes('hidden'));
 controller('onkeyup',8);assert(x.nodes.overlay.className.includes('hidden'));
 // Back cannot dismiss an in-flight operation or skip result acknowledgement.
@@ -380,7 +385,9 @@ x=boot(null,false,false,false,true);
 x.nodes.tabs.children.find(n=>n.textContent.indexOf('System')===0).onclick();
 x.click('tweak-settings-example');assert(x.nodes.action.disabled);x.pump();
 assert.match(x.nodes['dialog-settings'].textContent,/Log storage limit/);
+assert.equal(x.nodes['dialog-settings'].getElementsByTagName('button').find(n=>n.id==='setting-profile-choice').textContent,'Stock');
 x.click('setting-log_limit_mb-plus');x.click('setting-compress-toggle');x.click('setting-profile-choice');
+assert.equal(x.nodes['dialog-settings'].getElementsByTagName('button').find(n=>n.id==='setting-profile-choice').textContent,'Medium');
 x.click('action');x.pump();
 assert.deepEqual(Array.from(x.calls.find(a=>a[0]==='start-run')),['start-run','settings-example','log_limit_mb=25','compress=false','profile=medium']);
 x=boot(null,false,false,false,true);x.states['settings-example']='installed';x.savedSettings['settings-example']='35';x.click('refresh');x.pump();
@@ -391,7 +398,8 @@ assert.equal(x.nodes['dialog-settings'].getElementsByTagName('button').length,0)
 x=boot(null,false,false,false,true);x.nodes.tabs.children.find(n=>n.textContent.indexOf('System')===0).onclick();
 x.click('tweak-settings-example');x.pump();x.click('setting-log_limit_mb-minus');x.click('back');x.click('tweak-settings-example');x.pump();
 assert.match(x.nodes['dialog-settings'].textContent,/20 MB/);
-controller('onkeydown',78);assert(x.doc.activeElement.id.indexOf('setting-')===0);
+for(let n=0;n<8 && !(x.doc.activeElement.id||'').startsWith('setting-');n++)controller('onkeydown',78);
+assert(x.doc.activeElement.id.indexOf('setting-')===0);
 console.log('SETTINGS_UI_PASSED: generic fields, parameter arrays, saved read-only values, draft cancellation and controller access.');
 
 assert.equal(parseConf('shim-example',fs.readFileSync(path.join(ROOT,'../development/examples/shim/manifest.conf'),'utf8')).shim_service,'jciMMUI');
@@ -422,3 +430,27 @@ assert.equal(clusterManifest.settingDefs[0].key,'hud_display_language');
 assert.equal(clusterManifest.settingDefs[0].default,'english');
 assert.equal(clusterManifest.components,'components.tsv');
 console.log('CLUSTER_MANIFEST_UI_PASSED: real test tweak defaults and generic settings schema.');
+
+// Long status messages retain all text in small, controller-reachable sections.
+x=boot();
+x.states.ssh='unavailable';
+x.reasons.ssh=('A long diagnostic line with details. ').repeat(18)+'Final diagnostic details';
+x.click('refresh');x.pump();
+x.nodes.tabs.children.find(n=>n.textContent.indexOf('System')===0).onclick();
+x.click('tweak-ssh');x.pump();
+const chunks=x.nodes['dialog-state'].children;
+assert(chunks.length>3);
+for(const chunk of chunks){assert(chunk.textContent.length<=161);assert.equal(chunk.tagName,'button');}
+assert(x.nodes['dialog-state'].textContent.includes(x.reasons.ssh));
+console.log('DETAIL_SECTIONS_PASSED: bounded sections preserve long diagnostics and use controller focus navigation.');
+
+x=boot();
+x.nodes.tabs.children.find(n=>n.textContent.indexOf('Interface')===0).onclick();
+assert.equal(x.nodes['list-position'].children.length,x.nodes.cards.children.length);
+x.nodes.cards.children[1].onfocus();
+assert.equal(x.nodes['list-position'].children.filter(n=>n.className.includes('active')).length,1);
+assert(x.nodes['list-position'].children[1].className.includes('active'));
+x.nodes.tabs.children.find(n=>n.textContent.indexOf('System')===0).onclick();
+assert.equal(x.nodes['list-position'].children.length,x.nodes.cards.children.length);
+assert.equal(x.nodes['list-position'].children.filter(n=>n.className.includes('active')).length,1);
+console.log('LIST_POSITION_PASSED: one segment per category entry, one active marker and category rebuild.');

@@ -73,3 +73,20 @@ button:focus{outline:3px solid #fff;outline-offset:-4px}button:active{background
 .setting-toggle{min-width:90px!important}.setting-toggle.on{border-color:#df2d4b;background:#6b1a2c}
 
 #installer-version{position:absolute;right:24px;top:12px;color:#9699a2;font-size:12px;white-space:nowrap}
+
+/* Focusable detail sections use the same navigation model as the tweak list. */
+#dialog-body.section-list{overflow:hidden;padding-right:0}
+.section-list .dialog-section{display:block;box-sizing:border-box;width:100%;margin:0 0 6px;padding:10px 14px;text-align:left;border:1px solid #41434a;border-left:3px solid #8b1d31;background:#24252b;font:17px/23px Arial,sans-serif;white-space:pre-wrap;word-wrap:break-word}
+.section-list .dialog-section:before{content:attr(data-heading);display:block;font-size:12px;line-height:17px;letter-spacing:1px;color:#b8bac2;margin-bottom:5px}
+.section-list .dialog-section:focus{outline:3px solid white;outline-offset:-4px;background:#481923;border-left-color:#ec2848}
+.section-list #dialog-state,.section-list #dialog-description{margin:0}
+.section-list #dialog-output{margin:0}
+.section-list .setting-row{border:1px solid #41434a;border-left:3px solid #8b1d31;background:#24252b;padding:8px 240px 8px 14px;margin-bottom:6px}
+.section-list .setting-controls{right:10px;top:8px}
+.section-list .setting-row:focus{outline:3px solid white;outline-offset:-4px;background:#481923}
+
+/* One segment per entry in the current category; only the selected entry is red. */
+#content{right:43px;overflow:hidden}
+#list-position{position:absolute;right:23px;top:159px;bottom:54px;width:4px;pointer-events:none}
+.list-segment{position:absolute;left:0;width:4px;background:#41434a}
+.list-segment.active{background:#d02b45}

@@ -8,7 +8,35 @@
     var operating = false, closing = false, locked = false, dialogMode = "", returnFocusId = "", accepted = false;
     var detailView = 0;
     function el(id) { return document.getElementById(id); }
-    function text(id, value) { el(id).textContent = value; }
+    function revealSection(node) {
+        var area=el("dialog-body"), top=0, current=node;
+        while(current && current!==area){top+=current.offsetTop||0;current=current.offsetParent;}
+        if(current!==area)return;
+        if(top<area.scrollTop)area.scrollTop=top;
+        else if(top+node.offsetHeight>area.scrollTop+area.clientHeight)area.scrollTop=top+node.offsetHeight-area.clientHeight;
+    }
+    function section(node, heading) {
+        node.className+=" dialog-section";
+        node.setAttribute("data-heading",heading);
+        node.onfocus=function(){revealSection(node);};
+    }
+    function text(id, value) {
+        var headings={"dialog-state":"STATUS","dialog-description":"DESCRIPTION","dialog-output":"DETAILS"};
+        if(dialogMode!=="details" || !headings[id]){el(id).textContent=value;return;}
+        var area=el(id),remaining=String(value||""),part,cut,line,button;
+        clear(area);
+        // Small focusable sections keep every line reachable without touch scrolling.
+        while(remaining){
+            cut=remaining.length>160?remaining.lastIndexOf(" ",160):remaining.length;
+            if(cut<40)cut=Math.min(160,remaining.length);
+            else if(cut<remaining.length)cut++;
+            line=remaining.indexOf("\n");
+            if(line>=0 && line<cut)cut=line+1;
+            part=remaining.substring(0,cut);remaining=remaining.substring(cut);
+            button=document.createElement("button");button.textContent=part;
+            section(button,area.firstChild?"CONTINUED":headings[id]);area.appendChild(button);
+        }
+    }
     function show(id, visible) { el(id).className = visible ? el(id).className.replace(/\bhidden\b/g, "") : el(id).className.replace(/\bhidden\b/g, "") + " hidden"; }
     function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
     function setDialogMode(mode) {
@@ -116,8 +144,15 @@
         }(all[i]));
         controls();
     }
+    function selectCard(button,index) {
+        var markers=el("list-position").children,area=el("content"),i;
+        for(i=0;i<markers.length;i++)markers[i].className="list-segment"+(i===index?" active":"");
+        if(button.offsetTop<area.scrollTop)area.scrollTop=button.offsetTop;
+        else if(button.offsetTop+button.offsetHeight>area.scrollTop+area.clientHeight)area.scrollTop=button.offsetTop+button.offsetHeight-area.clientHeight;
+    }
     function renderCards() {
-        var node = el("cards"); clear(node);
+        var node = el("cards"),indicator=el("list-position"),count=0,position=0; clear(node);clear(indicator);
+        for(var n=0;n<tweaks.length;n++)if(tweaks[n].group===selectedGroup)count++;
         show("empty", !tweaks.length);
         text("empty", "No tweaks found in the tweaks folder.");
         for (var i = 0; i < tweaks.length; i++) {
@@ -128,7 +163,13 @@
             name.className = "tweak-name"; name.textContent = item.name;
             state.className = "tweak-status";
             button.appendChild(dot); button.appendChild(name); button.appendChild(state);
-            (function (tweak) { button.onclick = function () { openDetails(tweak); }; }(item));
+            (function (tweak,card,index) {
+                card.onfocus=function(){selectCard(card,index);};
+                card.onclick=function(){selectCard(card,index);openDetails(tweak);};
+            }(item,button,position));
+            var marker=document.createElement("span");marker.className="list-segment"+(position===0?" active":"");
+            marker.style.top=(position/count*100)+"%";marker.style.height=(70/count)+"%";
+            indicator.appendChild(marker);position++;
             item.button = button; item.dot = dot; item.statusNode = state;
             node.appendChild(button); updateCard(item);
         }
@@ -177,6 +218,11 @@
         }
         return args;
     }
+    function settingDisplay(d,value) {
+        if(d.type==="boolean")return value==="true"?"On":"Off";
+        if(d.type==="choice")return value.charAt(0).toUpperCase()+value.substring(1);
+        return value;
+    }
     function renderSettings(item) {
         var area=el("dialog-settings"),defs=item.settingDefs||[],readOnly=item.settingsSaved,i;
         clear(area);
@@ -191,7 +237,7 @@
                 var b=document.createElement("button");b.id="setting-"+d.key+"-"+suffix;b.textContent=title;b.setAttribute("aria-label",d.label+": "+title);b.onclick=handler;controls.appendChild(b);return b;
             }
             function save(v) {item.settingValues[d.key]=v;item.settingDraft[d.key]=v;}
-            if(readOnly){value.textContent=(d.type==="boolean"?(item.settingValues[d.key]==="true"?"On":"Off"):item.settingValues[d.key])+(d.unit?" "+d.unit:"");controls.appendChild(value);return;}
+            if(readOnly){row.tabIndex=0;section(row,"INSTALLED SETTING");value.textContent=settingDisplay(d,item.settingValues[d.key])+(d.unit?" "+d.unit:"");controls.appendChild(value);return;}
             if(d.type==="number") {
                 var minus=button("minus","-",function(){save(String(Number(item.settingValues[d.key])-Number(d.step)));update();});
                 value.className="setting-value";controls.appendChild(value);
@@ -203,7 +249,7 @@
                 var updateToggle=function(){var on=item.settingValues[d.key]==="true";toggle.textContent=on?"On":"Off";toggle.className="setting-toggle"+(on?" on":"");toggle.setAttribute("aria-checked",on?"true":"false");};
                 toggle.setAttribute("role","switch");updateToggle();
             } else {
-                var choice=button("choice",item.settingValues[d.key],function(){var at=d.choices.indexOf(item.settingValues[d.key]);save(d.choices[(at+1)%d.choices.length]);choice.textContent=item.settingValues[d.key];});
+                var choice=button("choice",settingDisplay(d,item.settingValues[d.key]),function(){var at=d.choices.indexOf(item.settingValues[d.key]);save(d.choices[(at+1)%d.choices.length]);choice.textContent=settingDisplay(d,item.settingValues[d.key]);});
             }
         }(defs[i]));
         if(readOnly){var note=document.createElement("div");note.className="setting-help";note.textContent="To change settings, uninstall this version first, then install again.";area.appendChild(note);}
@@ -366,10 +412,10 @@
         });
     }
     function addMeta(key, value) {
-        var row = document.createElement("div"), title = document.createElement("span"), content = document.createElement("span");
+        var row = document.createElement("button"), title = document.createElement("span"), content = document.createElement("span");
         row.className = "meta-row"; title.className = "meta-key"; title.textContent = key + ":";
         content.textContent = typeof value === "object" ? JSON.stringify(value) : String(value);
-        row.appendChild(title); row.appendChild(content); el("dialog-meta").appendChild(row);
+        row.appendChild(title); row.appendChild(content); section(row,"TWEAK INFORMATION"); el("dialog-meta").appendChild(row);
         return content;
     }
     function openDetails(item) {
@@ -377,7 +423,7 @@
         var view=++detailView;
         show("restore-action",false); show("uninstall-action",false); item.savedRemovable=false;
         text("back","Back"); el("back").onclick=closeDialog;
-        el("dialog-body").className = "bottom-info";
+        el("dialog-body").className = "section-list";
         selected = item; returnFocusId = "tweak-" + item.id; setDialogMode("details");
         text("dialog-title", item.name); el("dialog-dot").className = "dot " + item.state;
         text("dialog-state", itemLabel(item) + (item.error ? "\n" + item.error : ""));
@@ -670,21 +716,31 @@
             if(event.preventDefault)event.preventDefault();event.returnValue=false;return;
         }
         // Original CMU Multicontroller.js: M = clockwise, N = counterclockwise.
-        // Route rotation to focus navigation; up/down keep detail-text scrolling.
+        // Rotation and tilt navigate detail sections as well as action buttons.
         if(key===77)key=39;else if(key===78)key=37;
         if (key===27) {
             if (dialogMode==="restore-confirm") el("back").onclick(); else if (dialogMode==="restart") leaveInstaller(false); else if (dialogMode==="confirm") openDetails(selected); else if (dialogMode==="details") closeDialog(); else if (dialogMode==="disclaimer" || !dialogMode) exit(); else return;
         } else if (key===38 || key===40 || key===37 || key===39) {
             // Up/down scroll detail text; left/right selects its action buttons.
-            if (dialogMode && !(dialogMode==="details" && selected && selected.settingDefs && selected.settingDefs.length) && (key===38 || key===40)) el("dialog-body").scrollTop += key===38 ? -70 : 70;
+            if (dialogMode && dialogMode!=="details" && (key===38 || key===40)) el("dialog-body").scrollTop += key===38 ? -70 : 70;
             else {
                 nodes=(dialogMode ? el("dialog") : el("app")).getElementsByTagName("button");
+                if(dialogMode==="details") {
+                    nodes=[];
+                    (function collect(parent){
+                        for(var n=0;n<parent.children.length;n++){
+                            var child=parent.children[n];
+                            if(child.tagName.toLowerCase()==="button" || child.tabIndex===0)nodes.push(child);
+                            else collect(child);
+                        }
+                    }(el("dialog")));
+                }
                 for(i=0;i<nodes.length;i++) if(!nodes[i].disabled && nodes[i].className.indexOf("hidden")===-1) buttons.push(nodes[i]);
                 for(i=0;i<buttons.length;i++) if(buttons[i]===document.activeElement) index=i;
                 if(buttons.length) {
                     index=(index+(key===37||key===38?-1:1)+buttons.length)%buttons.length;
                     buttons[index].focus();
-                    if(dialogMode==="details" && buttons[index].id && buttons[index].id.indexOf("setting-")===0 && buttons[index].scrollIntoView)buttons[index].scrollIntoView(false);
+                    if(dialogMode==="details")revealSection(buttons[index]);
                     if (!dialogMode && buttons[index].className==="tweak") {
                         var card=buttons[index],area=el("content");
                         if(card.offsetTop<area.scrollTop)area.scrollTop=card.offsetTop;
