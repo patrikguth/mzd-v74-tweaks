@@ -4,14 +4,14 @@ button{font-family:Arial,sans-serif;color:#f5f5f5;cursor:pointer;border:1px soli
 button:focus{outline:3px solid #fff;outline-offset:-4px}button:active{background:#9f1630}button:disabled{color:#797b81;border-color:#3c3e44;cursor:default}
 .hidden{display:none!important}
 #app{position:absolute;left:0;top:0;width:800px;height:480px;background:#101114}
-#header{position:absolute;left:0;top:0;width:800px;height:83px;background:#17181c;border-bottom:3px solid #b21b32}
-#wordmark{position:absolute;left:26px;top:17px;font-size:29px;letter-spacing:2px}#wordmark span{color:#e7e7e9}
-#subtitle{position:absolute;left:28px;top:54px;font-size:11px;letter-spacing:3px;color:#a1a1a9}
-.small{position:absolute;top:21px;height:43px;font-size:17px}#refresh{right:122px;width:104px}#exit{right:24px;width:83px}
-#tabs{position:absolute;left:20px;right:20px;top:97px;height:47px;overflow-x:auto;overflow-y:hidden;white-space:nowrap}
+#header{position:absolute;left:0;top:0;width:800px;height:67px;background:#17181c;border-bottom:3px solid #b21b32}
+#wordmark{position:absolute;left:26px;top:9px;font-size:29px;letter-spacing:2px}#wordmark span{color:#e7e7e9}
+#subtitle{position:absolute;left:28px;top:44px;font-size:11px;letter-spacing:3px;color:#a1a1a9}
+.small{position:absolute;top:12px;height:43px;font-size:17px}#refresh{right:122px;width:104px}#exit{right:24px;width:83px}
+#tabs{position:absolute;left:20px;right:20px;top:81px;height:47px;overflow-x:auto;overflow-y:hidden;white-space:nowrap}
 .tab{height:42px;min-width:150px;margin-right:8px;padding:0 19px;border:0;border-bottom:3px solid #42444a;background:#1b1c21;font-size:19px}
 .tab.selected{border-bottom:3px solid #ec2848;background:#431723;color:#fff}
-#content{position:absolute;left:20px;right:14px;top:156px;bottom:47px;overflow:auto}
+#content{position:absolute;left:20px;right:14px;top:128px;bottom:47px;overflow:auto}
 /* Compact, single-column CMU-style rows; five entries fit below the tabs. */
 #cards{padding:3px 3px 8px}
 .tweak{position:relative;display:block;box-sizing:border-box;width:100%;height:48px;margin:0 0 4px;padding:0;text-align:left;border:0;border-bottom:1px solid #41434a;border-left:3px solid #8b1d31;background:#202126}
@@ -87,7 +87,7 @@ button:focus{outline:3px solid #fff;outline-offset:-4px}button:active{background
 
 /* One segment per entry in the current category; only the selected entry is red. */
 #content{right:43px;overflow:hidden}
-#list-position{position:absolute;right:23px;top:159px;bottom:54px;width:4px;pointer-events:none}
+#list-position{position:absolute;right:23px;top:131px;bottom:54px;width:4px;pointer-events:none}
 .list-segment{position:absolute;left:0;width:4px;background:#41434a}
 .list-segment.active{background:#d02b45}
 
