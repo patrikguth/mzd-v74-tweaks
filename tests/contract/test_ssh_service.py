@@ -40,6 +40,15 @@ with tempfile.TemporaryDirectory(prefix='mzd-ssh-test-') as temporary:
     source = source.replace('PATH=/usr/sbin:/usr/bin:/sbin:/bin', 'PATH=' + shlex.quote(bp(bins)) + ':/usr/bin:/bin')
     source = source.replace('[ "$(id -u)" = 0 ]', ':').replace('/etc/ssh/ssh_host_rsa_key', shlex.quote(bp(key)))
     source = source.replace('printf \'%s\\n\' "$$" > "$RAM/supervisor.pid"', 'printf \'%s\\n\' "$$" > "$RAM/supervisor.pid"\nmkdir -p "$PROC/$$"\nprintf \'%s\\000\' "$SELF" boot > "$PROC/$$/cmdline"')
+    # Copy original standard streams to fd 5 before redirecting the probe's
+    # output. /proc/self then inspects the real inherited descriptor on Linux
+    # and Git Bash, without relying on shell-specific child PID variables.
+    reader_stdout, reader_stderr = temp / 'reader-stdout', temp / 'reader-stderr'
+    source = source.replace('write_log() {', 'write_log() {\n' +
+        'if [ "$1" = "fixture daemon ready" ]; then\n' +
+        '/usr/bin/readlink /proc/self/fd/5 5>&1 > ' + shlex.quote(bp(reader_stdout)) + '\n' +
+        '/usr/bin/readlink /proc/self/fd/5 5>&2 > ' + shlex.quote(bp(reader_stderr)) + '\n' +
+        'fi\n', 1)
     write(service / 'service.sh', source)
     config = (service / 'sshd_config').read_text().replace('/tmp/mzd-aio-ssh', bp(ram)).replace('/etc/ssh/ssh_host_rsa_key', bp(key))
     write(service / 'sshd_config', config)
@@ -105,6 +114,9 @@ mkdir -p {shlex.quote(bp(proc))}/$$
 printf '%s\000' /usr/sbin/sshd -D -e -f "$CFG" > {shlex.quote(bp(proc))}/$$/cmdline
 printf '%s\n' "$$" > "$PIDFILE"
 printf 'start\n' >> {shlex.quote(bp(starts))}
+printf 'fixture daemon ready\n'
+/usr/bin/readlink /proc/self/fd/5 5>&2 > {shlex.quote(bp(temp / 'daemon-stderr'))}
+
 trap 'exit 0' TERM INT
 N=0
 while [ "$N" -lt 60 ]; do sleep 1; N=$((N+1)); done
@@ -140,13 +152,27 @@ esac
     assert failed.returncode == 1 and 'fixture sshd: host key cannot be loaded' in failed.stderr, failed
     assert not ram.exists() and account.read_text() == original
     (temp / 'fail-daemon').unlink()
-    background = subprocess.Popen([args.bash, str(service / 'service.sh'), 'boot', str(usb)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    startup = temp / 'ssh-start.log'
+    with startup.open('wb') as stream:
+        background = subprocess.Popen([args.bash, str(service / 'service.sh'), 'boot', str(usb)], stdout=stream, stderr=subprocess.STDOUT)
     try:
         for _ in range(20):
             result = subprocess.run([args.bash, str(service / 'service.sh'), 'status'], capture_output=True, timeout=10)
             if result.returncode == 0: break
             time.sleep(.5)
         else: raise AssertionError('Mock SSH did not become ready')
+        for _ in range(20):
+            if all(p.exists() and p.stat().st_size for p in [reader_stdout, reader_stderr, temp / 'daemon-stderr']):
+                break
+            time.sleep(.1)
+        else: raise AssertionError('Descriptor observations were not produced')
+        for descriptor in [reader_stdout, reader_stderr, temp / 'daemon-stderr']:
+            assert 'ssh-start.log' not in descriptor.read_text(), (descriptor.name, descriptor.read_text())
+        assert reader_stdout.read_text().strip() == '/dev/null'
+        assert reader_stderr.read_text().strip() == '/dev/null'
+        assert 'SSH startup phase: launch sshd' in startup.read_text()
+        runtime_logs = list((usb / 'reports/ssh').glob('runtime-*/run.log'))
+        assert any('fixture daemon ready' in p.read_text() for p in runtime_logs)
         expected_hash = (service / 'password.hash').read_text().strip()
         assert account.read_text().splitlines()[0].split(':')[1] == expected_hash
         assert account.read_text().splitlines()[1] == original.splitlines()[1]
@@ -183,4 +209,4 @@ esac
         if background.poll() is None:
             subprocess.run([args.bash, str(service / 'service.sh'), 'stop'], capture_output=True, timeout=20)
             background.wait(timeout=10)
-print('Passed: absent/disabled/disconnected WLAN, later address arrival/loss without service restart, target grep limitation, OEM port 36000 coexistence, occupied port 22 rejection, duplicate start, RAM password overlay, failed-start rollback, firewall reset recovery, owned-process stop and USB-only logs. No real sshd, mounts or firewall used.')
+print('Passed: absent/disabled/disconnected WLAN, later address arrival/loss without service restart, target grep limitation, OEM port 36000 coexistence, occupied port 22 rejection, duplicate start, RAM password overlay, failed-start rollback, firewall reset recovery, owned-process stop, detached pipeline descriptors, startup diagnostics and USB-only logs. No real sshd, mounts or firewall used.')

@@ -52,3 +52,16 @@ The matching worker, assets and shared helpers are saved under
 The live SSH listener payload remains under
 `/tmp/mnt/resources/mzd-tweaks/ssh/`. `managed-paths.tsv` describes those
 live paths for cross-tweak ownership checks; it does not choose the package store.
+
+## Startup log lifetime
+
+The supervisor writes startup progress to the installer's short-lived
+`ssh-start.log` stream. Before creating the long-lived sshd/log-reader pipeline,
+a subshell redirects its standard streams to `/dev/null`. sshd's stderr is then
+routed into the reader pipe, and the reader uses `write_log` for the separate
+optional USB runtime log. Detaching only the supervisor after forking would
+leave the reader holding the inherited startup file open.
+
+The supervisor still reports failed startup and tails available runtime
+messages. Tests inspect real inherited descriptors using mock sshd/kernel
+commands, verify runtime logging, and retain failure/stop coverage.

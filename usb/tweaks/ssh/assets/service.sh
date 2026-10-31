@@ -195,7 +195,12 @@ mount -o bind "$RAM/passwd" "$ACCOUNT" || fail 'Could not set up password in RAM
 cmp -s "$RAM/passwd" "$ACCOUNT" || fail 'Could not verify account overlay.'
 if command -v nscd >/dev/null; then nscd -i passwd 2>/dev/null || :; fi
 printf 'SSH startup phase: launch sshd\n' >&2
-"$SSHD" -D -e -f "$CONFIG" 2>&1 | while IFS= read -r LINE; do write_log "$LINE"; done &
+# Detach the whole long-lived pipeline before forking either child. Detaching
+# only the supervisor later leaves the log reader holding ssh-start.log open.
+(
+    exec </dev/null >/dev/null 2>&1
+    "$SSHD" -D -e -f "$CONFIG" 2>&1 | while IFS= read -r LINE; do write_log "$LINE"; done
+) &
 sleep 1
 [ -s "$RAM/sshd.pid" ] || fail 'SSH could not open port 22.'
 DAEMON=$(cat "$RAM/sshd.pid")
