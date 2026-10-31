@@ -1,0 +1,11 @@
+--- target.data
++++ target.data
+@@ -149,7 +149,7 @@
+     //@formatter:off
+     this._messageTable = {
+         "LanguageChangeStatus" : this._LanguageChangeStatusMsgHandler.bind(this),
+-        "Global.AtSpeed" : this._AtSpeedMsgHandler.bind(this),
++        // MZD touch-while-driving: "Global.AtSpeed" : this._AtSpeedMsgHandler.bind(this),
+         "Global.NoSpeed" : this._NoSpeedMsgHandler.bind(this),
+         "Global.PageUp" : this._PageUpDownMsgHandler.bind(this),
+         "Global.PageDown" : this._PageUpDownMsgHandler.bind(this),
