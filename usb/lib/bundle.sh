@@ -143,7 +143,7 @@ mzd_bundle_plan() (
     done < "$plan/components"
     printf '%s\n' "$number" > "$plan/count"
     # Only this package's declared files may occupy the private payload directory.
-    payload_dir="$MZD_COMPONENT_STORAGE/mzd-tweaks/shims/$ID"
+    payload_dir="${PAYLOAD_DIR:-$MZD_COMPONENT_STORAGE/mzd-tweaks/shims/$ID}"
     for existing in "$payload_dir"/* "$payload_dir"/.[!.]* "$payload_dir"/..?*; do
         [ -e "$existing" ] || [ -L "$existing" ] || continue
         awk -F "$(printf '\t')" -v p="$existing" '$2==p && $1~/^(file|config|shim)$/{found=1} END{exit !found}' "$plan/components" || {
@@ -210,7 +210,7 @@ mzd_bundle_apply() {
         *) mzd_fail 'Components are not in a complete supported state.' ;;
     esac
     if [ "$ACTION" = install ]; then mzd_bundle_preflight || mzd_fail 'Vehicle requirements are not met.'; fi
-    payload_dir="$MZD_COMPONENT_STORAGE/mzd-tweaks/shims/$ID"
+    payload_dir="${PAYLOAD_DIR:-$MZD_COMPONENT_STORAGE/mzd-tweaks/shims/$ID}"
     for folder in "$MZD_REPORT/plan/"[0-9]*; do
         target=$(cat "$folder/target.path") || exit 1
         mount_point=$(mzd_shim_mount "$target") || mzd_fail 'Unsupported internal component filesystem.'
@@ -296,7 +296,8 @@ mzd_bundle_main() (
         fi
         if state=$(mzd_bundle_plan "$scratch" status 2> "$scratch/reason"); then printf '%s\n' "$state"
         else
-            if [ -d "$MZD_COMPONENT_STORAGE/mzd-tweaks/shims/$ID" ]; then printf 'broken\n'; else printf 'unavailable\n'; fi
+            payload_dir="${PAYLOAD_DIR:-$MZD_COMPONENT_STORAGE/mzd-tweaks/shims/$ID}"
+            if [ -d "$payload_dir" ]; then printf 'broken\n'; else printf 'unavailable\n'; fi
             cat "$scratch/reason" >&2
         fi
         exit 0
@@ -314,7 +315,7 @@ mzd_bundle_reset_main() (
     mzd_components records > "$scratch/components" || exit 1
     mzd_settings_check "$HERE/manifest.conf" "${MZD_SETTINGS_FILE:-}" || exit 1
     tab=$(printf '\t'); number=0
-    payload_dir="$MZD_COMPONENT_STORAGE/mzd-tweaks/shims/$ID"
+    payload_dir="${PAYLOAD_DIR:-$MZD_COMPONENT_STORAGE/mzd-tweaks/shims/$ID}"
     mzd_shim_parent_ok "$payload_dir" || exit 1
     for existing in "$payload_dir"/* "$payload_dir"/.[!.]* "$payload_dir"/..?*; do
         [ -e "$existing" ] || [ -L "$existing" ] || continue

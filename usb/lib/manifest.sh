@@ -26,12 +26,13 @@ mzd_manifest_load() {
         mzd_manifest_key=${mzd_manifest_line%%=*}
         mzd_manifest_value=${mzd_manifest_line#*=}
         case "$mzd_manifest_key" in
-            contract_version|id|name|description|version|type|group|firmware|entrypoint|actions|target|oem_backup_md5|lock_group|status_scope|reboot_required|requires|conflicts|progress|confirmation|refresh_all|reset_entrypoint|settings|setting.*|shim_service|shim_asset|shim_path|shim_extra_targets|shim_checks|components|contributors) ;;
+            contract_version|id|name|description|version|type|group|firmware|entrypoint|actions|target|oem_backup_md5|lock_group|status_scope|reboot_required|requires|conflicts|progress|confirmation|refresh_all|reset_entrypoint|settings|setting.*|shim_service|shim_asset|shim_path|shim_extra_targets|shim_checks|components|contributors|payload_dir) ;;
             *) mzd_manifest_error "Unknown field: $mzd_manifest_key"; return 1 ;;
         esac
         case "$mzd_manifest_seen" in *" $mzd_manifest_key "*) mzd_manifest_error "Duplicate field: $mzd_manifest_key"; return 1 ;; esac
         mzd_manifest_seen="$mzd_manifest_seen$mzd_manifest_key "
         case "$mzd_manifest_key" in
+            payload_dir) PAYLOAD_DIR=$mzd_manifest_value ;;
             components) COMPONENTS=$mzd_manifest_value ;;
             shim_service) SHIM_SERVICE=$mzd_manifest_value ;;
             shim_asset) SHIM_ASSET=$mzd_manifest_value ;;
@@ -135,6 +136,20 @@ mzd_manifest_load() {
     if [ -n "$COMPONENTS" ]; then
         [ "$COMPONENTS:$TYPE:$RESET_ENTRYPOINT:$REBOOT_REQUIRED:$LOCK_GROUP" = components.tsv:files:reset.sh:true:sm-config ] || { mzd_manifest_error 'Components require components.tsv, files, reset.sh, restart and sm-config lock.'; return 1; }
         [ -z "$SHIM_ASSET$SHIM_PATH$SHIM_SERVICE$SHIM_EXTRA_TARGETS$SHIM_CHECKS" ] || { mzd_manifest_error 'Use either components or single-shim metadata.'; return 1; }
+        if [ -n "${PAYLOAD_DIR:-}" ]; then
+            case "$PAYLOAD_DIR" in
+                /tmp/mnt/data_persist/*) ;;
+                *) mzd_manifest_error 'Payload directory must be under persistent storage.'; return 1 ;;
+            esac
+            case "$PAYLOAD_DIR" in
+                */*/*/*) ;;
+                *) mzd_manifest_error 'Payload directory cannot be the root storage directory.'; return 1 ;;
+            esac
+            case "$PAYLOAD_DIR" in
+                *[!A-Za-z0-9_./-]*) mzd_manifest_error 'Invalid characters in payload directory.'; return 1 ;;
+                */.|*/..|*/./*|*/../*|*//*) mzd_manifest_error 'Payload directory cannot contain relative elements.'; return 1 ;;
+            esac
+        fi
         . "${mzd_manifest_file%/*}/../../lib/components.sh" || return 1
         mzd_components validate || return 1
     fi

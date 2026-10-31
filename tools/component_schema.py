@@ -10,7 +10,10 @@ def read(manifest, values):
     rows = []
     seen, checks = set(), set()
     primary = loaders = shims = 0
-    prefix = '/tmp/mnt/data_persist/mzd-tweaks/shims/' + values['id'] + '/'
+    if values.get('payload_dir'):
+        prefix = values['payload_dir'] + '/'
+    else:
+        prefix = '/tmp/mnt/data_persist/mzd-tweaks/shims/' + values['id'] + '/'
 
     def safe(path, absolute=True):
         return bool(re.fullmatch(r'/[A-Za-z0-9_./-]+' if absolute else r'assets/[A-Za-z0-9_./-]+', path)) and not any(p in ('.', '..') for p in path.split('/')) and '//' not in path
@@ -22,7 +25,7 @@ def read(manifest, values):
         fields = line.split('\t')
         if len(fields) != 5 or '\r' in line or len(rows) >= 64:
             raise ValueError('Expected at most 64 five-column component records.')
-        kind, target, source, service, md5 = fields
+        kind, target, source, service, md5 = (f.strip() for f in fields)
         if not safe(target):
             raise ValueError('Invalid component target.')
         if kind == 'check':

@@ -4,8 +4,8 @@ from settings_schema import definitions
 
 FIELDS = ('contract_version id name description version type group firmware '
           'entrypoint actions target oem_backup_md5 lock_group status_scope '
-          'reboot_required requires conflicts progress confirmation refresh_all reset_entrypoint settings shim_service shim_asset shim_path shim_extra_targets shim_checks components contributors').split()
-REQUIRED = set(FIELDS) - {'target', 'oem_backup_md5', 'lock_group', 'progress', 'confirmation', 'refresh_all', 'reset_entrypoint', 'settings', 'shim_service', 'shim_asset', 'shim_path', 'shim_extra_targets', 'shim_checks', 'components', 'contributors'}
+          'reboot_required requires conflicts progress confirmation refresh_all reset_entrypoint settings shim_service shim_asset shim_path shim_extra_targets shim_checks components contributors payload_dir').split()
+REQUIRED = set(FIELDS) - {'target', 'oem_backup_md5', 'lock_group', 'progress', 'confirmation', 'refresh_all', 'reset_entrypoint', 'settings', 'shim_service', 'shim_asset', 'shim_path', 'shim_extra_targets', 'shim_checks', 'components', 'contributors', 'payload_dir'}
 ID = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')
 VERSION = re.compile(r'^[0-9]+\.[0-9]+\.[0-9]+$')
 
@@ -90,6 +90,10 @@ def parse(text):
             raise ValueError('Invalid component bundle metadata.')
         if any(values.get(k) for k in ('shim_service', 'shim_asset', 'shim_path', 'shim_extra_targets', 'shim_checks')):
             raise ValueError('Use either components or single-shim metadata.')
+        if values.get('payload_dir'):
+            pdir = values['payload_dir']
+            if not pdir.startswith('/tmp/mnt/data_persist/') or any(x in ('.', '..') for x in pdir.split('/')) or not re.fullmatch(r'/[A-Za-z0-9_./-]+', pdir):
+                raise ValueError('Invalid persistent payload directory.')
     schema = definitions(values)
     result = dict(values)
     result['setting_definitions'] = schema
