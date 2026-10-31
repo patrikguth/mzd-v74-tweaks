@@ -522,6 +522,7 @@
         if (!scanning && !locked && !item.invalid && item.manifest.type==="patch" && item.state!=="installed" && supported(item,"install")) {
             call(["restore-check",item.id],function (error,result) {
                 if (error || view!==detailView || dialogMode!=="details" || selected!==item || operating || closing || scanning || locked || item.savedRemovable) return;
+                if (result && !resultError(result) && !result.stdoutTruncated && !result.stderrTruncated && result.stdout === "original\n") return;
                 var offer=originalRestoreOffer(result);
                 if (!offer) {
                     var reason=error || resultError(result) || "The restore check returned an invalid response.";

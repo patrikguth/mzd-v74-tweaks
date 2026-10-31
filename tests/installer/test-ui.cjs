@@ -339,6 +339,17 @@ function recoveryOffer(raw='available\t'+'a'.repeat(32)+'\t/jci/test.js\n') {
   r.nodes.tabs.children.find(n=>n.textContent.indexOf('Interface')===0).onclick();
   r.click('tweak-list-beep');r.pump();return r;
 }
+// A stock target is a quiet outcome, while a recovery offer does not block Install.
+for (const raw of ['original\n','available\t'+'a'.repeat(32)+'\t/jci/test.js\n']) {
+  x=boot();x.recovery['list-beep']=raw;
+  x.nodes.tabs.children.find(n=>n.textContent.indexOf('Interface')===0).onclick();
+  x.click('tweak-list-beep');x.pump();
+  assert.equal(x.nodes.action.textContent,'Install');assert.equal(x.nodes.action.disabled,false);
+  assert.equal(x.nodes['restore-action'].className.includes('hidden'),raw==='original\n');
+  assert.doesNotMatch(x.nodes['dialog-description'].textContent,/Restore original unavailable/);
+  if(raw==='original\n')assert.doesNotMatch(x.nodes['dialog-description'].textContent,/Restore original resets/);
+  else assert.match(x.nodes['dialog-description'].textContent,/Restore original resets ALL changes/);
+}
 x=recoveryOffer();assert.equal(x.nodes['dialog-title'].textContent,'No List Beep - Broken installation');
 assert(!x.nodes['restore-action'].className.includes('hidden'));
 assert.equal(x.nodes.action.textContent,'Retry status');
@@ -363,7 +374,7 @@ x.click('result-ok');x.pump();x.outcomes['list-beep']=0;x.click('tweak-list-beep
 x.pump();assert(x.nodes['restore-action'].className.includes('hidden'));
 x=recoveryOffer();x.restoreOutcomes['list-beep']=2;x.click('restore-action');x.click('action');x.pump();
 assert.match(x.nodes['dialog-description'].textContent,/Do NOT reboot/);x.click('result-ok');assert.equal(x.nodes.refresh.disabled,true);
-for(const raw of ['', 'available\tbad-hash\t/jci/test.js\n','available\t'+'a'.repeat(32)+'\t/jci/test.js','available\t'+'a'.repeat(32)+'\t/jci/test.js\nextra\n']) {
+for(const raw of ['', 'original', 'original\nextra\n', 'available\tbad-hash\t/jci/test.js\n','available\t'+'a'.repeat(32)+'\t/jci/test.js','available\t'+'a'.repeat(32)+'\t/jci/test.js\nextra\n']) {
   x=recoveryOffer(raw);assert.match(x.nodes['dialog-description'].textContent,/Restore original unavailable:/);assert.equal(x.nodes['dialog-title'].textContent,'No List Beep - Broken installation');assert(x.nodes['restore-action'].className.includes('hidden'));assert(!x.calls.some(a=>a[0]==='restore-original'));
 }
 // Eligibility is not required to arrive before the user navigates elsewhere.

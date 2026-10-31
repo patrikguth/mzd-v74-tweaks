@@ -84,6 +84,9 @@ if [ "$MZD_LOG_LEVEL" != off ]; then
 fi
 checkpoint "Installer version: $MZD_INSTALLER_VERSION"
 checkpoint "USB logging: $MZD_LOG_LEVEL"
+# Delay the whole installer startup, before transport or Secondary Opera starts.
+checkpoint 'Waiting 3 seconds before starting installer'
+sleep 3
 # The styled UI owns the startup notice and Exit. Never block on jci-dialog.
 export XDG_RUNTIME_DIR=/tmp
 export WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-wayland-0}

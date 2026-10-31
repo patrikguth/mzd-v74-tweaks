@@ -15,6 +15,12 @@ An eligible result is one line:
 available<TAB>confirmation-fingerprint<TAB>absolute-target-path<LF>
 ```
 
+An unchanged OEM target returns `original<LF>` with exit 0, including when no
+`.org` exists. The UI silently keeps the ordinary details and hides Restore.
+Other refusals and invalid replies remain diagnostic. Restore availability alone
+does not disable Install: compatible unrelated edits may be preserved, and the
+installation action still performs its complete preflight before writing.
+
 An install blocked by a completed worker target inspection can still emit
 `MZD_RECOVERY_CANDIDATE`. After the failed result is acknowledged, this returns
 to the detail view to offer the same button. It never opens confirmation

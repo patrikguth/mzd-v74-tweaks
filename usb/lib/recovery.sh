@@ -56,6 +56,13 @@ mzd_recovery_validate() {
         mzd_recovery_error 'Single-file recovery is only available for plain file patches.'; return 1;
     }
     mzd_validate_firmware "$FIRMWARE" || return 1
+    # A stock target needs no recovery, even when no .org backup exists yet.
+    # Only the read-only check accepts this outcome; Restore still refuses it.
+    if [ "${1:-}" = inspect ] && mzd_asset_readable "$APP" &&
+        [ ! -L "$APP" ] && [ "$(mzd_hash "$APP")" = "$ORIGINAL" ]; then
+        RECOVERY_ALREADY_ORIGINAL=1
+        return 0
+    fi
     mzd_asset_readable "$APP" && mzd_asset_readable "$APP.org" || {
         mzd_recovery_error 'A readable target and original .org backup are required.'; return 1;
     }
@@ -150,8 +157,13 @@ mzd_recovery_main() (
     mzd_require_tools awk md5sum cut readlink || exit 1
     if [ "$command" = restore-check ]; then
         [ ! -e "$MZD_PACKAGE_LOCK" ] && [ ! -e "$LOCK" ] || { mzd_recovery_error 'Another operation is active.'; exit 1; }
-        mzd_recovery_validate || exit 1
+        RECOVERY_ALREADY_ORIGINAL=0
+        mzd_recovery_validate inspect || exit 1
         [ ! -e "$MZD_PACKAGE_LOCK" ] && [ ! -e "$LOCK" ] || exit 1
+        if [ "$RECOVERY_ALREADY_ORIGINAL" = 1 ]; then
+            printf 'original\n'
+            exit 0
+        fi
         printf 'available\t%s\t%s\n' "$RECOVERY_TOKEN" "$APP"
         exit 0
     fi

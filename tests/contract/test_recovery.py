@@ -97,7 +97,13 @@ awk -v p="$3" -v mode="$2" '{$4=($2==p?(mode=="rw,remount"?"rw":"ro"):$4);print}
     assert len(archives)==1 and (archives[0]/'before.data').read_text()==foreign and (archives[0]/'original.data').read_text()==original
     prepare();write(mounts,mounts.read_text().replace('/dev/ffx01p1','/dev/mmcblk0p1'))
     unchanged_check();restore();assert target.read_text()==original and not backup.exists();clean()
-    for scenario in ['missing-backup','bad-backup','oem-target','service','extra-path','unsupported','external-target','ram-target','busy','stale','retarget','backup-retarget','version-change']:
+    for stock_backup in ['present','absent']:
+        prepare();write(target,original)
+        if stock_backup=='absent':backup.unlink()
+        result=unchanged_check()
+        assert result.stdout=='original\n' and not result.stderr
+        restore(1);assert target.read_text()==original;clean()
+    for scenario in ['missing-backup','bad-backup','service','extra-path','unsupported','external-target','ram-target','busy','stale','retarget','backup-retarget','version-change']:
         prepare()
         if scenario=='missing-backup':backup.unlink()
         if scenario=='bad-backup':write(backup,'wrong original\n')
