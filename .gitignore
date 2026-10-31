@@ -1,4 +1,5 @@
 # Vehicle/runtime output
+/usb/exports/
 /usb/installer-logs/
 /usb/reports/
 # Private local evidence and development leftovers
@@ -7,8 +8,5 @@ __pycache__/
 *.pyc
 *.o
 /development/test-runs/local/
-
-/usb/exports/
-
-
 /tests/transport/.test-cache/
+.DS_Store
