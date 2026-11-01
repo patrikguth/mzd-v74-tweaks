@@ -6,7 +6,7 @@
     var tweaks = [], selectedGroup = "", selected = null, scanning = false;
     var restartRequired = false, failedStatusName = "";
     var operating = false, closing = false, locked = false, dialogMode = "", returnFocusId = "", accepted = false;
-    var detailView = 0;
+    var detailView = 0, choicePicker = null;
     function el(id) { return document.getElementById(id); }
     function revealSection(node) {
         var area=el("dialog-body"), top=0, current=node;
@@ -23,7 +23,15 @@
     function text(id, value) {
         var headings={"dialog-state":"DETAILS","dialog-description":"DESCRIPTION","dialog-output":"DETAILS","dialog-contributors":"CONTRIBUTORS"};
         if(dialogMode!=="details" || !headings[id]){el(id).textContent=value;return;}
-        var area=el(id),remaining=String(value||""),part,cut,line,button;
+        if(id==="dialog-description") {
+            clear(el(id));
+            if(trim(value)) {
+                var description=document.createElement("div");description.tabIndex=0;description.textContent=String(value);
+                section(description,"DESCRIPTION");el(id).appendChild(description);
+            }
+            return;
+        }
+        var area=el(id),remaining=String(value||""),part,cut,line,button,balance,first=true;
         clear(area);
         // Small focusable sections keep every line reachable without touch scrolling.
         while(remaining){
@@ -38,15 +46,21 @@
                 if(breaks===5)cut=line+1;
                 line++;
             }
+            // Avoid a final section containing only a leftover word or short fragment.
+            if(cut<remaining.length && remaining.length-cut<80){
+                balance=remaining.lastIndexOf(" ",Math.floor(remaining.length/2));
+                if(balance>=40 && balance<cut)cut=balance+1;
+            }
             part=remaining.substring(0,cut);remaining=remaining.substring(cut);
             if(!trim(part))continue;
             button=document.createElement("button");button.textContent=part;
-            section(button,headings[id]);area.appendChild(button);
+            section(button,first?headings[id]:"CONTINUED");first=false;area.appendChild(button);
         }
     }
     function show(id, visible) { el(id).className = visible ? el(id).className.replace(/\bhidden\b/g, "") : el(id).className.replace(/\bhidden\b/g, "") + " hidden"; }
     function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
     function setDialogMode(mode) {
+        closeChoice(false);
         dialogMode=mode;
         el("dialog-heading").className=mode==="details"?"detail-heading":"";
         if (mode!=="details") {el("dialog-meta").tabIndex=-1;show("restore-action",false);show("uninstall-action",false);clear(el("dialog-settings"));clear(el("dialog-contributors"));}
@@ -127,7 +141,7 @@
         for (i = 0; i < tweaks.length; i++) if (found.indexOf(tweaks[i].group) === -1) found.push(tweaks[i].group);
         return found.sort();
     }
-    function groupName(group) { return group.charAt(0).toUpperCase() + group.substring(1); }
+    function groupName(group) { return group.replace(/(^|-)([a-z])/g,function(match,separator,letter){return (separator?" ":"")+letter.toUpperCase();}); }
     function renderTabs() {
         var node = el("tabs"), all = groups(); clear(node);
         if (all.indexOf(selectedGroup) === -1) selectedGroup = all[0] || "";
@@ -197,7 +211,7 @@
         }
         for(key in raw)if(Object.prototype.hasOwnProperty.call(raw,key) && key.indexOf("setting.")===0) {
             parts=key.split(".");d=known["$"+parts[1]];
-            if(parts.length!==3 || !d || "type label default min max step unit help options".split(" ").indexOf(parts[2])===-1 || unescape(encodeURIComponent(raw[key])).length>256)throw new Error("Invalid setting field: "+key);
+            if(parts.length!==3 || !d || "type label default min max step unit help options".split(" ").indexOf(parts[2])===-1 || unescape(encodeURIComponent(raw[key])).length>(parts[2]==="options"?4096:256))throw new Error("Invalid setting field: "+key);
             d[parts[2]]=raw[key];
         }
         for(i=0;i<defs.length;i++) {
@@ -207,7 +221,7 @@
             } else if(d.min!==undefined || d.max!==undefined || d.step!==undefined || d.unit!==undefined)throw new Error("Unexpected numeric fields.");
             if(d.type==="choice") {
                 d.choices=(d.options || "").split(" ");known={};
-                if(d.choices.length>16)throw new Error("Too many choices.");
+                if(d.choices.length>64)throw new Error("Too many choices.");
                 for(n=0;n<d.choices.length;n++) {
                     key=d.choices[n];if(!/^[a-z0-9][a-z0-9_-]{0,31}$/.test(key) || known["$"+key])throw new Error("Invalid choices.");known["$"+key]=true;
                 }
@@ -235,7 +249,54 @@
         if(d.type==="choice")return value.charAt(0).toUpperCase()+value.substring(1);
         return value;
     }
+    function closeChoice(restore) {
+        var old=choicePicker;
+        if(!old)return;
+        choicePicker=null;
+        if(old.root.parentNode)old.root.parentNode.removeChild(old.root);
+        if(restore && old.view===detailView && selected===old.item && dialogMode==="details")old.trigger.focus();
+    }
+    function openChoice(item,d,trigger,save) {
+        if(operating || closing || dialogMode!=="details" || selected!==item || item.settingsSaved)return;
+        closeChoice(false);
+        var root=document.createElement("div"),title=document.createElement("h2"),list=document.createElement("div"),cancel=document.createElement("button"),n;
+        var state={root:root,list:list,buttons:[],index:d.choices.indexOf(item.settingValues[d.key]),view:detailView,item:item,trigger:trigger};
+        root.id="choice-picker";root.className="choice-picker";root.setAttribute("role","dialog");root.setAttribute("aria-modal","true");root.setAttribute("aria-label",d.label);
+        title.textContent=d.label;root.appendChild(title);list.className="choice-list";list.setAttribute("role","listbox");root.appendChild(list);
+        choicePicker=state;
+        function focus(index) {
+            state.index=index;
+            if(index<d.choices.length)list.scrollTop=Math.max(0,(index-4)*52);
+        }
+        for(n=0;n<d.choices.length;n++)(function(index){
+            var b=document.createElement("button"),current=d.choices[index]===item.settingValues[d.key];
+            b.id="choice-option-"+index;b.className="choice-option"+(current?" selected":"");b.textContent=settingDisplay(d,d.choices[index])+(current?" (selected)":"");
+            b.setAttribute("role","option");b.setAttribute("aria-selected",current?"true":"false");
+            b.onfocus=function(){focus(index);};
+            b.onclick=function(){
+                if(choicePicker!==state || state.view!==detailView || selected!==item || dialogMode!=="details" || operating || closing || item.settingsSaved)return;
+                save(d.choices[index]);trigger.textContent=settingDisplay(d,item.settingValues[d.key]);closeChoice(true);
+            };
+            state.buttons.push(b);list.appendChild(b);
+        }(n));
+        cancel.id="choice-cancel";cancel.textContent="Cancel";cancel.onfocus=function(){state.index=d.choices.length;};cancel.onclick=function(){if(choicePicker===state)closeChoice(true);};state.buttons.push(cancel);root.appendChild(cancel);
+        el("dialog").appendChild(root);state.index=Math.max(0,state.index);focus(state.index);state.buttons[state.index].focus();
+    }
+    function choiceKey(event,key) {
+        var state=choicePicker,delta;
+        if(!state)return false;
+        if(key===27){closeChoice(true);}
+        else if(key===37 || key===38 || key===39 || key===40 || key===77 || key===78 || key===9){
+            delta=(key===37 || key===38 || key===78 || (key===9 && event.shiftKey))?-1:1;
+            state.index=(state.index+delta+state.buttons.length)%state.buttons.length;
+            if(state.index<state.buttons.length-1)state.list.scrollTop=Math.max(0,(state.index-4)*52);
+            state.buttons[state.index].focus();
+        } else if(key===13 || key===32){state.buttons[state.index].onclick();}
+        else return false;
+        if(event.preventDefault)event.preventDefault();event.returnValue=false;return true;
+    }
     function renderSettings(item) {
+        closeChoice(false);
         var area=el("dialog-settings"),defs=item.settingDefs||[],readOnly=item.settingsSaved,i;
         clear(area);
         if(!defs.length)return;
@@ -261,7 +322,7 @@
                 var updateToggle=function(){var on=item.settingValues[d.key]==="true";toggle.textContent=on?"On":"Off";toggle.className="setting-toggle"+(on?" on":"");toggle.setAttribute("aria-checked",on?"true":"false");};
                 toggle.setAttribute("role","switch");updateToggle();
             } else {
-                var choice=button("choice",settingDisplay(d,item.settingValues[d.key]),function(){var at=d.choices.indexOf(item.settingValues[d.key]);save(d.choices[(at+1)%d.choices.length]);choice.textContent=settingDisplay(d,item.settingValues[d.key]);});
+                var choice=button("choice",settingDisplay(d,item.settingValues[d.key]),function(){if(d.choices.length>=3){openChoice(item,d,choice,save);return;}var at=d.choices.indexOf(item.settingValues[d.key]);save(d.choices[(at+1)%d.choices.length]);choice.textContent=settingDisplay(d,item.settingValues[d.key]);});
             }
         }(defs[i]));
         if(readOnly){var note=document.createElement("div");note.className="setting-help";note.textContent="To change settings, uninstall this version first, then install again.";area.appendChild(note);}
@@ -295,7 +356,7 @@
         });
     }
     function parseManifest(id, raw) {
-        var m = {}, lines = raw.split("\n"), fields = "contract_version id name description version type group firmware entrypoint actions target oem_backup_md5 lock_group status_scope reboot_required requires conflicts progress confirmation refresh_all reset_entrypoint settings shim_service shim_asset shim_path shim_extra_targets shim_checks components contributors".split(" ");
+        var m = {}, lines = raw.split("\n"), fields = "contract_version id name description version type group firmware entrypoint actions target oem_backup_md5 lock_group status_scope reboot_required requires conflicts progress confirmation refresh_all reset_entrypoint settings shim_service shim_asset shim_path shim_extra_targets shim_checks components contributors gui_api gui_menu_path gui_label gui_entrypoint".split(" ");
         for (var n = 0; n < lines.length; n++) {
             var line = lines[n].replace(/\r$/, "");
             if (/[\x00-\x1f\x7f]/.test(line)) throw new Error("Manifest contains control characters.");
@@ -309,6 +370,16 @@
         for (var r = 0; r < required.length; r++) if (!Object.prototype.hasOwnProperty.call(m,required[r])) throw new Error("Missing manifest field: " + required[r]);
         if (m.contract_version !== "1") throw new Error("Unsupported manifest contract version.");
         m.contract_version = 1;
+        if (m.type==="gui-extension") {
+            var menuPath=m.gui_menu_path||"", menuSegments=menuPath?menuPath.split("/"):[];
+            if (menuPath.length>240 || menuSegments.length>8) throw new Error("Invalid GUI menu path.");
+            for(var mi=0;mi<menuSegments.length;mi++) if (!menuSegments[mi] || menuSegments[mi]==="." || menuSegments[mi]===".." || menuSegments[mi].length>80 || trim(menuSegments[mi])!==menuSegments[mi]) throw new Error("Invalid GUI menu path.");
+            if (["games","exit"].indexOf(m.id)!==-1) throw new Error("Reserved GUI extension ID.");
+            if (m.gui_api!=="1" || !m.gui_label || m.gui_label.length>80 ||
+                !/^assets\/[A-Za-z0-9_./-]+[.]html$/.test(m.gui_entrypoint||"") || /(^|\/)\.\.?($|\/)/.test(m.gui_entrypoint) ||
+                m.reset_entrypoint!=="reset.sh" || m.reboot_required!=="true" || m.status_scope!=="payload" ||
+                m.target || m.oem_backup_md5 || m.lock_group || m.components || m.shim_asset || m.actions!=="install uninstall status") throw new Error("Invalid GUI extension metadata.");
+        } else if (m.gui_api || m.gui_menu_path || m.gui_label || m.gui_entrypoint) throw new Error("GUI metadata requires gui-extension type.");
         if (m.reboot_required !== "true" && m.reboot_required !== "false") throw new Error("Invalid reboot_required value.");
         m.reboot_required = m.reboot_required === "true";
         if (m.progress !== undefined && m.progress !== "true" && m.progress !== "false") throw new Error("Invalid progress value.");
@@ -440,7 +511,7 @@
         text("dialog-title", item.name+" - "+itemLabel(item)); el("dialog-dot").className = "dot " + item.state;
         text("dialog-state",item.error || "");
         var description = item.manifest.description || "Manifest could not be loaded.";
-        if (item.manifest.type === "patch" || item.manifest.type === "service" || item.manifest.type === "files") {
+        if (item.manifest.type === "patch" || item.manifest.type === "service" || item.manifest.type === "files" || item.manifest.type === "gui-extension") {
             if (item.state === "broken" || (item.state === "unavailable" && /target|patch|file|content|incompatible/i.test(item.error || ""))) description += "\n\nUse System > Restore originals, then retry.\nThis resets ALL patches on affected files.";
         }
         text("dialog-description", description);
@@ -639,17 +710,28 @@
         el("dialog-body").scrollTop=0; el("back").focus();
     }
     function perform(item, action, restoreHash) {
+        if(choicePicker)return;
         var actionName = action==="restore-original" ? "Restore" : action.charAt(0).toUpperCase() + action.slice(1);
+        var workingTimer = null, workingDots = 0;
+        var workingLabel = {install:"Installing",uninstall:"Uninstalling","restore-original":"Restoring"}[action];
         operating = true; controls(); setDialogMode("working");
         el("dialog-body").className = "bottom-info";
         el("dialog-state").className = "operation-status";
-        text("dialog-state",actionName + " in progress...");
+        text("dialog-state",workingLabel ? workingLabel : actionName + " in progress...");
+        if (workingLabel) {
+            workingTimer = window.setInterval(function () {
+                if (!operating || dialogMode!=="working") return;
+                workingDots = (workingDots + 1) % 4;
+                text("dialog-state",workingLabel + new Array(workingDots + 1).join("."));
+            },500);
+        }
         text("dialog-description","Keep the system on and do not remove the USB drive");
         clear(el("dialog-meta"));
         el("back").disabled = true; el("action").disabled = true;
         footer("Working: " + item.name);
         function complete(error,result) {
             operating=false;
+            if (workingTimer!==null) {window.clearInterval(workingTimer);workingTimer=null;}
             var recoveryCandidate=result && /(^|\n)MZD_RECOVERY_CANDIDATE\n/.test(result.stdout);
             if (result && result.stdout) result.stdout=result.stdout.replace(/^MZD_RECOVERY_CANDIDATE\n/gm,"");
             var problem = error || resultError(result);
@@ -722,6 +804,7 @@
         // Backspace is the CMU Back button. Always suppress browser history.
         if(event.preventDefault)event.preventDefault();event.returnValue=false;
         if(operating || closing)return;
+        if(choicePicker){closeChoice(true);return;}
         if(dialogMode==="restore-confirm")el("back").onclick();else if(dialogMode==="restart")leaveInstaller(false);else if(dialogMode==="confirm")openDetails(selected);else if(dialogMode==="details")closeDialog();else if(dialogMode==="disclaimer" || !dialogMode)exit();
     }
     document.onkeydown=function (event) {
@@ -729,6 +812,15 @@
         if(key===8) {
             // Mazda emits goBack on keyup, not keydown or auto-repeat.
             if(event.preventDefault)event.preventDefault();event.returnValue=false;return;
+        }
+        if(choiceKey(event,key))return;
+        if(dialogMode==="details" && (key===38 || key===40)) {
+            var field=document.activeElement,previous;
+            if(field && field.parentNode===el("dialog-description") && field.scrollHeight>field.clientHeight) {
+                previous=field.scrollTop;
+                field.scrollTop=Math.max(0,Math.min(field.scrollHeight-field.clientHeight,previous+(key===38?-46:46)));
+                if(field.scrollTop!==previous){if(event.preventDefault)event.preventDefault();event.returnValue=false;return;}
+            }
         }
         // Original CMU Multicontroller.js: M = clockwise, N = counterclockwise.
         // Rotation and tilt navigate detail sections as well as action buttons.

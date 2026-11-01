@@ -8,6 +8,9 @@ Do not introduce a second legacy launcher or generated runtime tree.
 
 1. Read [the worker contract](Worker-contract.md).
 2. Copy `development/examples/patch/` or `development/examples/hello/` into `usb/tweaks/<id>/`.
+   For a lazy-loaded GUI view, use [the Hello World GUI example](examples/gui-hello-world/)
+   and read [Shared GUI extensions](Gui-extensions.md). Menu paths, including nested paths,
+   use the same shared lifecycle for all views.
 3. Supply an English manifest, README, entrypoint and assets.
 4. Declare firmware, dependencies, conflicts, lock group and reboot needs.
    Put these settings only in manifest.conf; the shared reader configures run.sh.

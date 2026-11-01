@@ -32,4 +32,9 @@ for(const name of fs.readdirSync(root)){
     for(const script of scripts)if(script[1].trim()){check(script[1],name);count++;}
   }
 }
+for(const name of fs.readdirSync(path.join(__dirname,'../../usb/lib/gui-runtime'))){
+  if(name.endsWith('.js')){check(fs.readFileSync(path.join(__dirname,'../../usb/lib/gui-runtime',name),'utf8'),name);count++;}
+}
+for(const name of ['view.js']){check(fs.readFileSync(path.join(__dirname,'../../development/examples/gui-hello-world/assets',name),'utf8'),name);count++;}
+for(const name of fs.readdirSync(path.join(__dirname,'../../usb/tweaks/tetris/assets'))){if(name.endsWith('.js')){check(fs.readFileSync(path.join(__dirname,'../../usb/tweaks/tetris/assets',name),'utf8'),name);count++;}}
 console.log('CMU_ES5_PASSED:',count,'runtime scripts; ES5 grammar and no block-scoped function declarations.');

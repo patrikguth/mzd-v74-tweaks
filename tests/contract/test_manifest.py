@@ -60,6 +60,19 @@ with tempfile.TemporaryDirectory(prefix='cmu-manifest-') as temporary:
               ('bad shim service',shim.replace('shim_service=jciMMUI','shim_service=jciMMUI;reboot'),False),
               ('bad extra hash',shim.replace(':030e918f5d6edcd62d196ee37b86fe99',':bad'),False),
               ('duplicate shim target',shim.replace('shim_extra_targets=', 'shim_extra_targets=/jci/sm/sm.conf:74d9fc389b74fb01d0cfc2615a82c782 '),False)]
+    gui=(ROOT/'development/examples/gui-extension/manifest.conf').read_text()
+    cases += [('GUI extension',gui,True),
+              ('GUI game container',gui.replace('gui_menu_path=','gui_menu_path=Games'),True),
+              ('unsupported GUI API',gui.replace('gui_api=1','gui_api=2'),False),
+              ('nested menu path',gui.replace('gui_menu_path=','gui_menu_path=Tools/Examples'),True),
+              ('empty path segment',gui.replace('gui_menu_path=','gui_menu_path=Tools//Examples'),False),
+              ('path traversal',gui.replace('gui_menu_path=','gui_menu_path=Tools/../Examples'),False),
+              ('leading path slash',gui.replace('gui_menu_path=','gui_menu_path=/Tools'),False),
+              ('deep menu path',gui.replace('gui_menu_path=','gui_menu_path='+ '/'.join(['a']*9)),False),
+              ('GUI traversal',gui.replace('assets/view.html','assets/../view.html'),False),
+              ('reserved GUI ID',gui.replace('id=gui-example','id=games'),False),
+              ('GUI missing reset',gui.replace('reset_entrypoint=reset.sh\n',''),False),
+              ('GUI metadata on patch',original+'gui_api=1\n',False)]
     for label, data, valid in cases:
         file.write_bytes(data.encode('utf-8'))
         try:

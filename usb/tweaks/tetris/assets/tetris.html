@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tetris - Traffic Jam</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="stage">
+    <section class="left-panel">
+        <div class="eyebrow">ONE MORE LINE</div>
+        <h1>Tetris</h1>
+        <div class="score-label">SCORE</div><div id="score">000000</div>
+        <div class="numbers"><div><span class="metric-label">LINES</span><strong id="lines">00</strong></div><div><span class="metric-label">LEVEL</span><strong id="level">01</strong></div></div>
+        <div class="progress"><div id="progress-fill"></div></div>
+        <div class="progress-caption"><span id="remaining">10</span> lines to next level</div>
+        <div class="tag"><span></span> TAKE YOUR TIME. FIND THE GAP.</div>
+    </section>
+    <div id="court"><canvas id="board" width="220" height="440" aria-label="Tetris playfield"></canvas></div>
+    <section class="right-panel">
+        <div class="eyebrow">UP NEXT</div>
+        <div class="preview"><div id="next" role="img" aria-label="Next piece"></div></div>
+        <div class="eyebrow control-title">COMMANDER</div>
+        <div class="control-row"><span class="key">&larr; &rarr;</span><span>Move piece</span></div>
+        <div class="control-row"><span class="key">TURN</span><span>Rotate</span></div>
+        <div class="control-row"><span class="key">PRESS</span><span>Drop piece</span></div>
+        <div class="control-row"><span class="key">&darr;</span><span>Soft drop</span></div>
+        <div class="control-row"><span class="key">BACK</span><span>Pause / menu</span></div>
+        <div class="keyboard">KEYBOARD: &larr; &rarr; MOVE &middot; &uarr; ROTATE<br>ENTER DROP &middot; ESC PAUSE</div>
+    </section>
+    <div id="shade"></div>
+    <section id="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+        <div class="eyebrow" id="dialog-kicker">LET'S PLAY</div>
+        <h2 id="dialog-title">Make room.</h2>
+        <p id="dialog-text">Stack. Rotate. Clear.</p>
+        <div id="menu"></div>
+        <div class="menu-hint">UP / DOWN TO CHOOSE &middot; PRESS TO SELECT</div>
+    </section>
+</main>
+<script src="/data/integration/mzd-gui-runtime/sdk.js"></script>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+<script src="shared-adapter.js"></script>
+</body>
+</html>

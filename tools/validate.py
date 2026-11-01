@@ -28,10 +28,10 @@ for folder in sorted((USB / 'tweaks').iterdir()):
     require(m['id'] in CASES, 'Register entrypoint tests in tests/contract/cases.py: ' + m['id'])
     if m.get('reset_entrypoint'):
         require((folder / m['reset_entrypoint']).is_file() and not (folder / m['reset_entrypoint']).is_symlink(), 'Reset hook missing or linked: ' + folder.name)
-    if m['type'] in ['service', 'files']:
+    if m['type'] in ['service', 'files', 'gui-extension']:
         require(m.get('reset_entrypoint') == 'reset.sh', 'Managed persistent extras require a reset hook: ' + folder.name)
     source = (folder / 'run.sh').read_text(encoding='utf-8')
-    require(('mzd_manifest_load "$HERE/manifest.conf"' in source or (CASES[m['id']] == 'export-command' and 'mzd_export_main "$@"' in source) or (m.get('shim_asset') and 'mzd_shim_main "$@"' in source) or (m.get('components') and 'mzd_bundle_main "$@"' in source)), 'Worker must load its manifest: ' + folder.name)
+    require(('mzd_manifest_load "$HERE/manifest.conf"' in source or (m['type']=='gui-extension' and 'mzd_gui_main "$@"' in source) or (CASES[m['id']] == 'export-command' and 'mzd_export_main "$@"' in source) or (m.get('shim_asset') and 'mzd_shim_main "$@"' in source) or (m.get('components') and 'mzd_bundle_main "$@"' in source)), 'Worker must load its manifest: ' + folder.name)
     require(not re.search(r'^(ID|FIRMWARE|APP|ORIGINAL|LOCK|REQUIRES|CONFLICTS)=', source, re.M),
             'Do not duplicate manifest configuration in run.sh: ' + folder.name)
     require(not re.search(r'(^|\n|;)\s*(/jci/tools/)?(reboot|jci-dialog)(?=\s|$)', '\n'.join(line for line in source.splitlines() if not line.lstrip().startswith('#'))),

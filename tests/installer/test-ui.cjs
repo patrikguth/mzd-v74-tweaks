@@ -27,7 +27,7 @@ function boot(manifestVersion,includeCommand,keepDisclaimer,includeExports,inclu
   nodes['restore-action'].className='hidden';nodes['uninstall-action'].className='hidden';
   nodes.overlay.className='hidden';nodes['result-ok'].className='primary hidden';
   nodes.transport.contentWindow={postMessage(job,origin){assert.equal(origin,'http://127.0.0.1:1234');jobs.push(job);}};
-  const win={installerConfig:{origin:'http://127.0.0.1:1234',token:'secret'},innerWidth:800,innerHeight:480,setTimeout(fn){timers.push(fn);},setInterval(fn){intervals.push(fn);},addEventListener(n,f){listeners[n]=f;}};
+  const win={installerConfig:{origin:'http://127.0.0.1:1234',token:'secret'},innerWidth:800,innerHeight:480,setTimeout(fn){timers.push(fn);},setInterval(fn){intervals.push(fn);return intervals.length-1;},clearInterval(id){intervals[id]=null;},addEventListener(n,f){listeners[n]=f;}};
   const ctx={window:win,document:doc,escape,unescape,encodeURIComponent,decodeURIComponent,WaylandManager:function(){this.SetRequiredSurfaces=(...a)=>calls.push(['visible',...a]);this.SetKeyboardFocus=(...a)=>calls.push(['focus',...a]);}};
   vm.runInNewContext(fs.readFileSync(path.join(ROOT,'ui/app.js'),'utf8'),ctx);
   function event(data,origin='http://127.0.0.1:1234',source=nodes.transport.contentWindow){listeners.message({source,origin,data});}
@@ -43,9 +43,9 @@ function boot(manifestVersion,includeCommand,keepDisclaimer,includeExports,inclu
     if(a[0]==='settings-info') {
       if(a[1]==='bundle-example'){const text=fs.readFileSync(path.join(ROOT,'../development/examples/bundle/manifest.conf'),'utf8');return ok('settings_saved='+(states[a[1]]==='installed'?'true':'false')+'\n'+text.slice(text.indexOf('settings='))+'value.hud_display_language=off\n');}
       if(a[1]!=='settings-example')return ok('settings_saved=true\nsettings=\n');
-      const text=fs.readFileSync(path.join(ROOT,'../development/examples/settings/manifest.conf'),'utf8');
+      const text=savedSettings.schemaText||fs.readFileSync(path.join(ROOT,'../development/examples/settings/manifest.conf'),'utf8');
       const defs=text.slice(text.indexOf('settings='));
-      return ok('settings_saved='+(savedSettings[a[1]]?'true':'false')+'\n'+defs+'value.log_limit_mb='+(savedSettings[a[1]]||'20')+'\nvalue.compress=true\nvalue.profile=stock\n');
+      return ok('settings_saved='+(savedSettings[a[1]]?'true':'false')+'\n'+defs+'value.log_limit_mb='+(savedSettings[a[1]]||'20')+'\nvalue.compress=true\nvalue.profile='+(/setting.profile.default=([^\r\n]+)/.exec(text)||[])[1]+'\n');
     }
     if(a[0]==='package-info')return ok(states[a[1]]==='installed'?'0.7.0\tinstalled\n':'');
     if(a[0]==='metrics')return ok('cpu\t1000\t700\t'+(a[1]==='0'?'-':'30')+'\ndisk\t/\t42\ndisk\t/tmp/mnt/resources\t18\ndisk\t/tmp/mnt/sdb1\t80\n');
@@ -78,10 +78,16 @@ x.nodes.tabs.children.find(n=>n.textContent.indexOf('Interface')===0).onclick();
 assert.equal(x.doc.getElementById('tweak-main-menu-loop').children[0].className,'dot installed');
 assert.equal(x.doc.getElementById('tweak-list-beep').children[0].className,'dot uninstalled');
 x.click('tweak-list-beep');assert.equal(x.nodes.action.textContent,'Install');assert.match(x.nodes['dialog-description'].textContent,/beeps/);assert.match(x.nodes['dialog-meta'].textContent,/Restart required:Yes/);
-x.click('action');assert.equal(x.nodes['dialog-state'].textContent,'Install in progress...');assert.equal(x.nodes.back.disabled,true);assert.equal(x.nodes.exit.disabled,true);x.pump();
+x.click('action');assert.equal(x.nodes['dialog-state'].textContent,'Installing');assert.equal(x.nodes.back.disabled,true);assert.equal(x.nodes.exit.disabled,true);
+const installAnimation=x.intervals[x.intervals.length-1],requestsBeforeAnimation=x.jobs.length;
+installAnimation();assert.equal(x.nodes['dialog-state'].textContent,'Installing.');
+installAnimation();assert.equal(x.nodes['dialog-state'].textContent,'Installing..');
+installAnimation();assert.equal(x.nodes['dialog-state'].textContent,'Installing...');
+installAnimation();assert.equal(x.nodes['dialog-state'].textContent,'Installing');assert.equal(x.jobs.length,requestsBeforeAnimation);x.pump();
+assert.equal(x.intervals[x.intervals.length-1],null);installAnimation();assert.equal(x.nodes['dialog-state'].textContent,'Install completed');
 assert.equal(x.nodes['dialog-title'].textContent,'Operation completed');assert.equal(x.nodes['dialog-state'].textContent,'Install completed');assert.doesNotMatch(x.nodes['dialog-output'].textContent,/install in progress|install completed/i);
 x.click('result-ok');x.pump();assert.equal(x.doc.getElementById('tweak-list-beep').children[0].className,'dot installed');
-x.click('tweak-list-beep');assert.equal(x.nodes.action.textContent,'Uninstall');x.click('action');assert.match(x.nodes['dialog-state'].textContent,/^Uninstall in progress/);x.pump();assert.equal(x.nodes['dialog-state'].textContent,'Uninstall completed');x.click('result-ok');x.pump();assert.equal(x.states['list-beep'],'uninstalled');
+x.click('tweak-list-beep');assert.equal(x.nodes.action.textContent,'Uninstall');x.click('action');assert.equal(x.nodes['dialog-state'].textContent,'Uninstalling');x.pump();assert.equal(x.nodes['dialog-state'].textContent,'Uninstall completed');x.click('result-ok');x.pump();assert.equal(x.states['list-beep'],'uninstalled');
 x.outcomes['list-beep']=1;x.click('tweak-list-beep');x.click('action');x.pump();assert.equal(x.nodes['dialog-title'].textContent,'Operation failed');assert.equal(x.nodes['dialog-state'].textContent,'Install failed');x.click('result-ok');x.pump();assert.equal(x.nodes.refresh.disabled,false);
 x.nodes.tabs.children.find(n=>n.textContent.indexOf('System')===0).onclick();x.click('tweak-ssh');assert.equal(x.nodes.action.textContent,'Retry status');assert.match(x.nodes['dialog-state'].textContent,/ambiguous/);x.click('back');
 x.nodes.tabs.children.find(n=>n.textContent.indexOf('Interface')===0).onclick();x.outcomes['list-beep']=2;x.click('tweak-list-beep');x.click('action');x.pump();assert.equal(x.nodes['dialog-title'].textContent,'Manual check required');assert.match(x.nodes['dialog-description'].textContent,/Do NOT reboot/);x.click('result-ok');assert.equal(x.nodes.refresh.disabled,true);x.click('tweak-main-menu-loop');assert.equal(x.nodes.action.disabled,true);x.click('back');
@@ -398,7 +404,7 @@ x.nodes.tabs.children.find(n=>n.textContent.indexOf('System')===0).onclick();
 x.click('tweak-settings-example');assert(x.nodes.action.disabled);x.pump();
 assert.match(x.nodes['dialog-settings'].textContent,/Log storage limit/);
 assert.equal(x.nodes['dialog-settings'].getElementsByTagName('button').find(n=>n.id==='setting-profile-choice').textContent,'Stock');
-x.click('setting-log_limit_mb-plus');x.click('setting-compress-toggle');x.click('setting-profile-choice');
+x.click('setting-log_limit_mb-plus');x.click('setting-compress-toggle');x.click('setting-profile-choice');x.click('choice-option-1');
 assert.equal(x.nodes['dialog-settings'].getElementsByTagName('button').find(n=>n.id==='setting-profile-choice').textContent,'Medium');
 x.click('action');x.pump();
 assert.deepEqual(Array.from(x.calls.find(a=>a[0]==='start-run')),['start-run','settings-example','log_limit_mb=25','compress=false','profile=medium']);
@@ -412,6 +418,14 @@ x.click('tweak-settings-example');x.pump();x.click('setting-log_limit_mb-minus')
 assert.match(x.nodes['dialog-settings'].textContent,/20 MB/);
 for(let n=0;n<8 && !(x.doc.activeElement.id||'').startsWith('setting-');n++)controller('onkeydown',78);
 assert(x.doc.activeElement.id.indexOf('setting-')===0);
+// Choice navigation is a local transaction: focus, cancel, commit and stale handlers.
+x=boot(null,false,false,false,true);x.nodes.tabs.children.find(n=>n.textContent.indexOf('System')===0).onclick();x.click('tweak-settings-example');x.pump();
+x.click('setting-profile-choice');assert.equal(x.doc.activeElement.id,'choice-option-0');let picker=x.doc.getElementById('choice-picker');assert(picker);let callsBeforePicker=x.calls.length;
+controller('onkeydown',77);assert.equal(x.doc.activeElement.id,'choice-option-1');controller('onkeyup',8);assert(!x.doc.getElementById('choice-picker'));assert.equal(x.doc.activeElement.id,'setting-profile-choice');assert.equal(x.doc.activeElement.textContent,'Stock');assert.equal(x.calls.length,callsBeforePicker);
+x.click('setting-profile-choice');let staleChoice=x.doc.getElementById('choice-option-2').onclick;controller('onkeydown',77);controller('onkeydown',13);assert.equal(x.doc.activeElement.id,'setting-profile-choice');assert.equal(x.doc.activeElement.textContent,'Medium');assert(!x.doc.getElementById('choice-picker'));
+x.click('setting-profile-choice');assert.equal(x.doc.activeElement.id,'choice-option-1');x.click('choice-cancel');assert.equal(x.doc.activeElement.textContent,'Medium');staleChoice();assert.equal(x.doc.activeElement.textContent,'Medium');
+x.click('setting-profile-choice');controller('onkeydown',27);assert(!x.doc.getElementById('choice-picker'));assert.equal(x.doc.activeElement.id,'setting-profile-choice');
+console.log('CHOICE_PICKER_UI_PASSED: >=3 options, marked/focused current value, controller selection, Back/Escape/click cancellation, trigger focus and stale-handler guards.');
 console.log('SETTINGS_UI_PASSED: generic fields, parameter arrays, saved read-only values, draft cancellation and controller access.');
 
 assert.equal(parseConf('shim-example',fs.readFileSync(path.join(ROOT,'../development/examples/shim/manifest.conf'),'utf8')).shim_service,'jciMMUI');
@@ -439,7 +453,7 @@ console.log('COMPATIBILITY_UI_PASSED: detail-only bounded queries, hard block, s
 
 const clusterManifest=parseConf('cluster-language',fs.readFileSync(path.join(ROOT,'tweaks/cluster-language/manifest.conf'),'utf8'));
 assert.equal(clusterManifest.settingDefs[0].key,'hud_display_language');
-assert.equal(clusterManifest.settingDefs[0].default,'english');
+assert.equal(clusterManifest.settingDefs[0].default,'off');
 assert.equal(clusterManifest.components,'components.tsv');
 console.log('CLUSTER_MANIFEST_UI_PASSED: real test tweak defaults and generic settings schema.');
 
@@ -454,6 +468,7 @@ const chunks=x.nodes['dialog-state'].children;
 assert(chunks.length>1);
 for(const chunk of chunks){assert(chunk.textContent.length<=361);assert.equal(chunk.tagName,'button');}
 assert(x.nodes['dialog-state'].textContent.includes(x.reasons.ssh));
+assert.equal(chunks[0].attributes['data-heading'],'DETAILS');for(const chunk of chunks.slice(1))assert.equal(chunk.attributes['data-heading'],'CONTINUED');
 console.log('DETAIL_SECTIONS_PASSED: bounded sections preserve long diagnostics and use controller focus navigation.');
 
 x=boot();
@@ -483,3 +498,21 @@ assert.equal(x.nodes['list-position'].children.length,1);
 assert(Number.isFinite(parseFloat(x.nodes['list-position'].children[0].style.height)));
 assert.equal(parseFloat(x.nodes['list-position'].children[0].style.top),0);
 console.log('DYNAMIC_POSITION_PASSED: enlarged selected segment, finite single-entry geometry and no idle footer prompt.');
+
+const guiConf=fs.readFileSync(path.join(ROOT,'../development/examples/gui-extension/manifest.conf'),'utf8');
+assert.equal(parseConf('gui-example',guiConf).gui_menu_path,'');
+for(const bad of [guiConf.replace('gui_api=1','gui_api=2'),guiConf.replace('gui_menu_path=','gui_menu_path=Tools//Examples'),guiConf.replace('assets/view.html','assets/../view.html'),guiConf.replace('reset_entrypoint=reset.sh\n','')]) assert.throws(()=>parseConf('gui-example',bad));
+assert.throws(()=>parseConf('games',guiConf.replace('id=gui-example','id=games')));
+console.log('GUI_MANIFEST_UI_PASSED: neutral extension, API, parent, path, reset and reserved ID checks.');
+
+const options64=Array.from({length:64},(_,i)=>'opt'+String(i).padStart(2,'0'));
+x=boot(null,false,false,false,true);x.savedSettings.schemaText=fs.readFileSync(path.join(ROOT,'../development/examples/settings/manifest.conf'),'utf8').replace('profile.default=stock','profile.default=opt00').replace('stock medium large',options64.join(' '));
+x.nodes.tabs.children.find(n=>n.textContent.indexOf('System')===0).onclick();x.click('tweak-settings-example');x.pump();x.click('setting-profile-choice');assert.equal(x.doc.getElementById('choice-picker').getElementsByTagName('button').length,65);for(let i=0;i<12;i++)controller('onkeydown',77);assert.equal(x.doc.activeElement.id,'choice-option-12');assert(x.doc.getElementById('choice-picker').children[1].scrollTop>0);controller('onkeydown',13);assert.equal(x.doc.activeElement.textContent,'Opt12');
+console.log('CHOICE_SCROLL_UI_PASSED: 64 options, controller focus visibility and selected value.');
+
+x=boot(null,false,false,false,true);x.savedSettings.schemaText=fs.readFileSync(path.join(ROOT,'../development/examples/settings/manifest.conf'),'utf8').replace('stock medium large','stock medium');x.nodes.tabs.children.find(n=>n.textContent.indexOf('System')===0).onclick();x.click('tweak-settings-example');x.pump();x.click('setting-profile-choice');assert(!x.doc.getElementById('choice-picker'));assert.equal(x.doc.getElementById('setting-profile-choice').textContent,'Medium');x.click('setting-profile-choice');assert.equal(x.doc.getElementById('setting-profile-choice').textContent,'Stock');
+console.log('TWO_CHOICE_UI_PASSED: two options retain direct cycling without a picker.');
+
+// Descriptions are one semantic field regardless of an arbitrary character count.
+x=boot(null,false,false,false,false,true);x.preflight['bundle-example']=x.ok('warning\t'+('Language compatibility details '.repeat(11))+'overridden\n');x.nodes.tabs.children.find(n=>n.textContent.indexOf('System')===0).onclick();x.click('tweak-bundle-example');x.pump();const descriptionParts=x.nodes['dialog-description'].children;assert.equal(descriptionParts.length,1);assert.equal(descriptionParts[0].attributes['data-heading'],'DESCRIPTION');assert(x.nodes['dialog-description'].textContent.includes('overridden'));const descriptionField=descriptionParts[0];descriptionField.clientHeight=190;descriptionField.scrollHeight=500;descriptionField.focus();controller('onkeydown',40);assert.equal(x.doc.activeElement,descriptionField);assert.equal(descriptionField.scrollTop,46);controller('onkeydown',38);assert.equal(descriptionField.scrollTop,0);
+console.log('DESCRIPTION_FIELD_PASSED: one continuous field, complete warning text and controller scrolling for genuinely long descriptions.');

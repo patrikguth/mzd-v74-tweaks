@@ -164,3 +164,9 @@ Choosing Uninstall uses the existing controller action and recorded worker;
 mutation guards run again, and unknown payloads or failures remain blocked.
 After successful verified removal, acknowledge the result, reopen the tweak and
 Install the USB version. There is no automatic reinstall or receipt deletion.
+
+## Shared GUI extensions
+
+`type=gui-extension` saves each consumer independently and manages the common
+provider automatically. See [Shared GUI extensions](Gui-extensions.md) for the
+first/last-consumer lifecycle, ownership and development limits.

@@ -96,13 +96,14 @@ setting.profile.options=stock medium large
 - Up to 16 unique setting names: lowercase letter, then lowercase letters,
   digits or underscores; at most 32 characters. Order follows `settings=`.
 - Each needs `type`, `label` and `default`. Optional `help` explains the field.
-  Individual declaration values are limited to 256 UTF-8 bytes.
+  Individual declaration values are limited to 256 UTF-8 bytes, except
+  `options`, which allows 4096 UTF-8 bytes.
 - `number`: canonical nonnegative integer, `min`, `max`, positive `step`, optional
   `unit`. Values must be in range and `(value-min)` divisible by step. Numeric
   fields are limited to 2147483647; leading zeros and floating-point values are
   refused. Defaults must satisfy the same rules.
 - `boolean`: exactly `true` or `false`; no numeric fields or options.
-- `choice`: `options` is a single-space-separated list of at most 16 unique
+- `choice`: `options` is a single-space-separated list of at most 64 unique
   tokens, each 1-32 lowercase letters/digits/underscore/hyphen, starting with a
   letter or digit. The default must be an option. No numeric fields.
 - Undeclared/duplicate keys, unknown declaration fields, invalid defaults,
@@ -173,3 +174,20 @@ Optional `contributors=Original author; port by Another developer` supplies lite
 free text shown in the tweak detail view. It is not shell code or HTML and does
 not affect installation or status checks. Omit it or leave it empty to hide the
 section. Duplicate fields and control characters remain invalid.
+
+## Shared GUI extensions
+
+`type=gui-extension` uses automatically managed GUI support and a saved consumer
+snapshot. See [Shared GUI extensions](Gui-extensions.md) for the API 1 metadata,
+first/last-consumer lifecycle, ownership rules and development limits.
+
+### Choice control behavior
+
+Two choice values use a direct cycling button. Three or more open a visible
+selection list with five rows and scrolling. The current value is marked and
+focused on opening. Rotary input and arrow keys move focus; Select commits the
+choice to the current draft. Back, Escape or Cancel closes the list without
+changing the value and restores focus to the setting button. Selecting a choice
+does not run a worker; the normal Install/Run action applies the draft later.
+Installed settings remain read-only. Boolean controls are unchanged. Choice
+labels continue to use the existing token display; tweaks own their terminology.

@@ -100,7 +100,7 @@ with tempfile.TemporaryDirectory(prefix='cmu-cluster-') as temporary:
     call(['action','cluster-language','install'],1);assert config.read_text()==stock and not payload_dir.exists();module.write_bytes(original_module)
     # Complete public controller, defaults from the real manifest.
     call(['action','cluster-language','install'])
-    assert (payload_dir/'libpatch.conf').read_text()=='hud_display_language = english\n'
+    assert (payload_dir/'libpatch.conf').read_text()=='hud_display_language = off\n'
     library=payload_dir/'libpatch-svcjciblmsettings.so'
     assert library.read_bytes()==(folder/'assets/libpatch-svcjciblmsettings.so').read_bytes()
     for path in [config,second]:

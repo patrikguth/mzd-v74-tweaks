@@ -188,3 +188,9 @@ controller removes an old version. It is not a mutation action. Install repeats
 its compatibility check under the shared lock. A worker callback returns plain
 records only: no dialogs, mounts or writes. See the
 [bundle example](examples/bundle/README.md) for transaction and upgrade limits.
+
+## Shared GUI extensions
+
+`type=gui-extension` uses automatically managed GUI support and a saved consumer
+snapshot. See [Shared GUI extensions](Gui-extensions.md) for the API 1 metadata,
+first/last-consumer lifecycle, ownership rules and development limits.

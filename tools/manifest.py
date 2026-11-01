@@ -4,8 +4,8 @@ from settings_schema import definitions
 
 FIELDS = ('contract_version id name description version type group firmware '
           'entrypoint actions target oem_backup_md5 lock_group status_scope '
-          'reboot_required requires conflicts progress confirmation refresh_all reset_entrypoint settings shim_service shim_asset shim_path shim_extra_targets shim_checks components contributors').split()
-REQUIRED = set(FIELDS) - {'target', 'oem_backup_md5', 'lock_group', 'progress', 'confirmation', 'refresh_all', 'reset_entrypoint', 'settings', 'shim_service', 'shim_asset', 'shim_path', 'shim_extra_targets', 'shim_checks', 'components', 'contributors'}
+          'reboot_required requires conflicts progress confirmation refresh_all reset_entrypoint settings shim_service shim_asset shim_path shim_extra_targets shim_checks components contributors gui_api gui_menu_path gui_label gui_entrypoint').split()
+REQUIRED = set(FIELDS) - {'target', 'oem_backup_md5', 'lock_group', 'progress', 'confirmation', 'refresh_all', 'reset_entrypoint', 'settings', 'shim_service', 'shim_asset', 'shim_path', 'shim_extra_targets', 'shim_checks', 'components', 'contributors', 'gui_api', 'gui_menu_path', 'gui_label', 'gui_entrypoint'}
 ID = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')
 VERSION = re.compile(r'^[0-9]+\.[0-9]+\.[0-9]+$')
 
@@ -36,7 +36,7 @@ def parse(text):
     if not VERSION.fullmatch(values['version']) or not VERSION.fullmatch(values['firmware']):
         raise ValueError('Expected one numeric version/firmware with three components.')
     expected = 'run status' if values['type'] == 'command' else 'install uninstall status'
-    if values['type'] not in ['command', 'patch', 'service', 'files'] or values['actions'] != expected:
+    if values['type'] not in ['command', 'patch', 'service', 'files', 'gui-extension'] or values['actions'] != expected:
         raise ValueError('Invalid type/actions.')
     if values['status_scope'] not in ['target-patch', 'configuration', 'payload', 'service-health']:
         raise ValueError('Invalid status scope.')
@@ -47,7 +47,23 @@ def parse(text):
             raise ValueError('Invalid dependency list.')
         if len(values[key].split()) != len(set(values[key].split())):
             raise ValueError('Duplicate dependency ID.')
-    if values['type'] != 'command':
+    if values['type'] == 'gui-extension':
+        menu_path = values.get('gui_menu_path', '')
+        segments = menu_path.split('/') if menu_path else []
+        if len(menu_path)>240 or len(segments)>8 or any(not x or x in ['.','..'] or len(x)>80 or x.strip()!=x for x in segments):
+            raise ValueError('Invalid GUI menu path.')
+        if values['id'] in ['games', 'exit']:
+            raise ValueError('Reserved GUI extension ID.')
+        if (values.get('gui_api') != '1'
+                or not 1 <= len(values.get('gui_label', '')) <= 80 or values.get('reset_entrypoint') != 'reset.sh'
+                or values['reboot_required'] != 'true' or values['status_scope'] != 'payload'
+                or any(values.get(k) for k in ['target','oem_backup_md5','lock_group','components','shim_asset'])
+                or not re.fullmatch(r'assets/[A-Za-z0-9_./-]+[.]html', values.get('gui_entrypoint', ''))
+                or any(x in ['.', '..'] for x in values['gui_entrypoint'].split('/'))):
+            raise ValueError('Invalid GUI extension metadata.')
+    elif any(values.get(k) for k in ['gui_api','gui_menu_path','gui_label','gui_entrypoint']):
+        raise ValueError('GUI metadata requires gui-extension type.')
+    if values['type'] not in ['command', 'gui-extension']:
         if not values.get('target', '').startswith('/'):
             raise ValueError('An absolute target is required.')
         if not re.fullmatch('[0-9a-f]{32}', values.get('oem_backup_md5', '')):
