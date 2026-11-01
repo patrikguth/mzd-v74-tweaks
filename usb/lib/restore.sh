@@ -6,7 +6,7 @@ mzd_restore_catalog() (
         [ "$FIRMWARE" = "$RESTORE_FIRMWARE" ] || continue
         if [ -n "${COMPONENTS:-}" ]; then
             mzd_components catalog || exit 1
-        elif [ "$TYPE" != command ]; then
+        elif [ "$TYPE" != command ] && [ "$TYPE" != gui-extension ]; then
             printf '%s\t%s\t%s\n' "$APP" "$ORIGINAL" "$LOCK"
             if [ -n "${SHIM_PATH:-}" ]; then
                 for pair in $SHIM_EXTRA_TARGETS; do printf '%s\t%s\t%s\n' "${pair%:*}" "${pair##*:}" "$LOCK"; done

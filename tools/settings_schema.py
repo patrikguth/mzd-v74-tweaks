@@ -19,7 +19,7 @@ def definitions(raw):
         if not key.startswith('setting.'):
             continue
         parts = key.split('.')
-        if len(parts) != 3 or parts[1] not in result or parts[2] not in FIELDS or len(value.encode('utf-8')) > 256:
+        if len(parts) != 3 or parts[1] not in result or parts[2] not in FIELDS or len(value.encode('utf-8')) > (4096 if parts[2] == 'options' else 256):
             raise ValueError('Invalid setting field: ' + key)
         result[parts[1]][parts[2]] = value
     for name, d in result.items():
@@ -33,7 +33,7 @@ def definitions(raw):
             raise ValueError('Numeric fields on non-number setting: ' + name)
         if kind == 'choice':
             options = d.get('options', '').split(' ')
-            if len(options) > 16 or len(set(options)) != len(options) or any(not TOKEN.fullmatch(o) for o in options):
+            if len(options) > 64 or len(set(options)) != len(options) or any(not TOKEN.fullmatch(o) for o in options):
                 raise ValueError('Invalid choices: ' + name)
         elif 'options' in d:
             raise ValueError('Options on non-choice setting: ' + name)

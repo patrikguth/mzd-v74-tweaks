@@ -23,7 +23,7 @@ function schema(   i,j,k,p,n,a,o,seenOptions) {
         } else if(present[k,"min"] || present[k,"max"] || present[k,"step"] || present[k,"unit"])fail("Numeric fields on non-number setting: " k)
         if(p=="choice") {
             o=field[k,"options"]; if(o=="" || o !~ /^[a-z0-9_-]+( [a-z0-9_-]+)*$/)fail("Invalid choices: " k)
-            j=split(o,a," "); if(j>16)fail("Too many choices: " k)
+            j=split(o,a," "); if(j>64)fail("Too many choices: " k)
             for(j in a)if(a[j] !~ /^[a-z0-9][a-z0-9_-]*$/ || length(a[j])>32 || seenOptions[k,a[j]]++)fail("Invalid or duplicate choice: " k)
         } else if(present[k,"options"])fail("Options on non-choice setting: " k)
         if(!valid(k,field[k,"default"]))fail("Invalid default: " k)
@@ -41,7 +41,7 @@ NR==FNR {
         if(list!="" && list !~ /^[a-z][a-z0-9_]*( [a-z][a-z0-9_]*)*$/)fail("Invalid settings list.")
     } else if(key ~ /^setting\./) {
         if(split(key,parts,"[.]")!=3 || parts[3] !~ /^(type|label|default|min|max|step|unit|help|options)$/)fail("Unknown setting field: " key)
-        if(length(value)>256 || present[parts[2],parts[3]]++)fail("Duplicate or oversized setting field: " key)
+        if(length(value)>(parts[3]=="options"?4096:256) || present[parts[2],parts[3]]++)fail("Duplicate or oversized setting field: " key)
         field[parts[2],parts[3]]=value
     }
     next

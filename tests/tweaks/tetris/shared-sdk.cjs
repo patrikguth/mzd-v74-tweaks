@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const {fixture}=require('./behavior.cjs'),f=fixture({sharedGui:true}),sent=[];
+const parent={postMessage(message){sent.push(message);}};f.window.parent=parent;f.window.location={hash:'#mzdgui=test-token'};
+const root=path.resolve(__dirname,'../../..');vm.runInNewContext(fs.readFileSync(path.join(root,'usb/lib/gui-runtime/sdk.js'),'utf8'),{window:f.window});
+vm.runInNewContext(fs.readFileSync(path.join(root,'usb/tweaks/tetris/assets/shared-adapter.js'),'utf8'),{window:f.window});
+assert.equal(f.listeners.keydown,undefined,'SDK mode must not register duplicate game keyboard handlers');assert.equal(sent[0].type,'mzd-gui-ready');
+function input(action,phase){f.windowListeners.message({source:parent,data:{type:'mzd-gui-input',token:'test-token',action,phase}});}
+input('select','press');input('select','press');assert.equal(f.api.getState().score,0);input('select','release');input('select','press');input('select','release');assert(f.api.getState().score>0);
+input('back','press');assert.equal(f.api.getState().screen,'play');input('back','step');assert.equal(f.api.getState().screen,'pause');assert(!sent.some(x=>x.type==='mzd-gui-close'));
+input('back','step');assert.equal(f.api.getState().screen,'play');input('back','step');input('down','press');input('down','release');input('down','press');input('down','release');input('select','press');assert(sent.some(x=>x.type==='mzd-gui-close'),'Exit must return to shared menu');
+f.window.MzdGuiModule._dispose();assert(f.cancelled());assert.equal(Object.keys(f.listeners).length,0);assert.equal(Object.keys(f.windowListeners).length,0);
+const payload=path.join(root,'usb/tweaks/tetris/assets');assert(!fs.existsSync(path.join(payload,'developer_mode_GuiConfig.js')));assert(!fs.existsSync(path.join(payload,'mzd-games')));assert(fs.readFileSync(path.join(payload,'tetris.html'),'utf8').includes('mzd-gui-runtime/sdk.js'));assert(!fs.readFileSync(path.join(payload,'style.css'),'utf8').includes('oem-preview/'));
+console.log('TETRIS_SHARED_SDK_PASSED: actual SDK and game, press/release latching, Back pause/resume, Exit, disposal and module-only package.');

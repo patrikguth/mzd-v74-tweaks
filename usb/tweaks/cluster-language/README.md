@@ -9,7 +9,8 @@ It does not install AA Mod, navigation or other AA/HUD functionality.
 ## Test with the launcher
 
 1. Open **System > Instrument Cluster / HUD Language**.
-2. Leave **Cluster / HUD language = english** and select Install.
+2. Choose **Cluster / HUD language = english** to force English, then select Install.
+   The default **off** passes through the normal CMU language code.
 3. Wait for Install completed, exit the installer and restart the CMU.
 4. Check CMU language, instrument-cluster/HUD text language, and street names
    with the same navigation/AA setup used before installation.

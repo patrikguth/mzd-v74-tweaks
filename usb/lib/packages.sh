@@ -108,6 +108,10 @@ mzd_package_storage() (
 )
 mzd_package_paths() (
     mzd_manifest_load "$1/manifest.conf" || exit 1
+    if [ "$TYPE" = gui-extension ]; then
+        . "${1%/tweaks/*}/lib/gui-extension.sh" || exit 1
+        mzd_gui_paths "$1"; exit $?
+    fi
     if [ -n "${COMPONENTS:-}" ]; then mzd_components paths; exit $?; fi
     if [ -f "$1/managed-paths.tsv" ]; then
         cat "$1/managed-paths.tsv" || exit 1
@@ -315,6 +319,12 @@ mzd_package_action() (
     if [ -e "$entry" ] || [ -L "$entry" ]; then
         mzd_package_check "$entry" || exit 1
         state=$(mzd_package_state "$entry") || exit 1
+        old_gui=0
+        mzd_manifest_load "$entry/package/tweaks/$id/manifest.conf" || exit 1
+        [ "$TYPE" != gui-extension ] || old_gui=1
+        if [ "$action" = install ] && { [ "$old_gui" = 1 ] || [ "$requested_type" = gui-extension ]; }; then
+            [ "$old_gui:$requested_type" = 1:gui-extension ] || { mzd_package_error 'GUI type migration requires explicit saved removal first.'; exit 1; }
+        fi
         if [ "$action" = install ]; then
             [ "$state" = installed ] || { mzd_package_error 'Incomplete installation; use Uninstall or Restore before installing.'; exit 1; }
             mzd_manifest_load "$entry/package/tweaks/$id/manifest.conf" || exit 1
@@ -330,7 +340,9 @@ mzd_package_action() (
             mzd_package_stage "$source" "$stage" "$id" "$requested" || exit 1
             mzd_package_install_paths "$stage/paths.tsv" "$entry" || exit 1
         fi
-        mzd_package_remove "$entry" || exit $?
+        if [ "$action:$old_gui" = install:1 ]; then
+            (MZD_GUI_REPLACEMENT=1; export MZD_GUI_REPLACEMENT; mzd_package_remove "$entry") || exit $?
+        else mzd_package_remove "$entry" || exit $?; fi
         [ "$action" != uninstall ] || exit 0
     elif [ "$action" = uninstall ]; then
         # Never execute new uninstall code against an unrecognized old payload.
