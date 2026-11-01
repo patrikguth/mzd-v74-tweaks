@@ -87,6 +87,18 @@ with tempfile.TemporaryDirectory(prefix='cmu-manifest-') as temporary:
             assert not r.stdout and r.stderr.strip(), (label, r.stdout, r.stderr)
         assert not marker.exists(), 'Manifest content was executed.'
         checks += 1
+    # Sequential manifest loading resets optional payload directory.
+    manifest_a = base / 'custom.conf'; manifest_b = base / 'default.conf'
+    manifest_a.write_text(original + 'payload_dir=/tmp/mnt/data_persist/custom-dir\n', encoding='utf-8')
+    manifest_b.write_text(original, encoding='utf-8')
+    seq_driver = base / 'seq.sh'
+    seq_driver.write_text('. ' + shlex.quote(bp(ROOT / 'usb/lib/manifest.sh')) + '\n'
+                          'mzd_manifest_load "$1" || exit 1\n[ "$PAYLOAD_DIR" = /tmp/mnt/data_persist/custom-dir ] || exit 1\n'
+                          'mzd_manifest_load "$2" || exit 1\n[ -z "$PAYLOAD_DIR" ] || exit 1\n',
+                          encoding='utf-8', newline='\n')
+    r = subprocess.run([SHELL, bp(seq_driver), bp(manifest_a), bp(manifest_b)], capture_output=True, text=True, timeout=15)
+    assert r.returncode == 0, (r.stdout, r.stderr)
+    checks += 1
     # Test the real installer adapter; it validates and forwards the same raw data.
     usb = base / 'usb'; (usb / 'lib').mkdir(parents=True)
     shutil.copyfile(ROOT / 'usb/installer.sh', usb / 'installer.sh')

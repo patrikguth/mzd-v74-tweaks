@@ -3,16 +3,29 @@ function fail(s) { print "Components: " s; bad=1; exit 1 }
 function path(s) { return s ~ /^\/[A-Za-z0-9_.\/-]+$/ && s !~ /\/\.\.?($|\/)/ && s !~ /\/\// }
 function asset(s) { return s ~ /^assets\/[A-Za-z0-9_.\/-]+$/ && s !~ /\/\.\.?($|\/)/ && s !~ /\/\// }
 function hash(s) { return s ~ /^[0-9a-f]+$/ && length(s)==32 }
-BEGIN { FS="\t"; prefix=storage "/mzd-tweaks/shims/" id "/" }
+BEGIN {
+    FS="\t"
+    if(payload_dir!="") {
+        if(substr(payload_dir,1,length(storage)+1)!=storage "/" || payload_dir ~ /\/\.\.?($|\/)/ || payload_dir ~ /\/\//)fail("Invalid payload directory.")
+        prefix=payload_dir "/"
+    } else {
+        prefix=storage "/mzd-tweaks/shims/" id "/"
+    }
+}
 { sub(/\r$/, "") }
 /^#/ || /^$/ {next}
 {
     if(NF!=5 || ++count>64 || $0 ~ /\r/)fail("Expected at most 64 five-column records.")
     kind=$1; dest=$2; source=$3; service=$4; md5=$5
+    gsub(/^[ \t]+|[ \t]+$/, "", kind)
+    gsub(/^[ \t]+|[ \t]+$/, "", dest)
+    gsub(/^[ \t]+|[ \t]+$/, "", source)
+    gsub(/^[ \t]+|[ \t]+$/, "", service)
+    gsub(/^[ \t]+|[ \t]+$/, "", md5)
     if(!path(dest))fail("Invalid target path.")
     if(kind=="check") {
         if(source!="-" || service!="-" || !hash(md5) || checks[dest]++)fail("Invalid module check.")
-        if(mode=="records")print $0
+        if(mode=="records")print kind "\t" dest "\t" source "\t" service "\t" md5
         next
     }
     if(seen[dest]++)fail("Duplicate component target.")
@@ -32,7 +45,7 @@ BEGIN { FS="\t"; prefix=storage "/mzd-tweaks/shims/" id "/" }
         if(mode=="paths")print "shim\t" dest
         payload++
     } else fail("Unknown component kind.")
-    if(mode=="records")print $0
+    if(mode=="records")print kind "\t" dest "\t" source "\t" service "\t" md5
 }
 END {
     if(bad)exit 1

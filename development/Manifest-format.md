@@ -165,8 +165,10 @@ See [the shim example](examples/shim/README.md).
 `components=components.tsv` declares a mixed files/configuration/shims/patches
 transaction. It requires `type=files`, `reset_entrypoint=reset.sh`,
 `reboot_required=true` and `lock_group=sm-config`. It cannot be combined with
-single-shim manifest fields. Component/config-map grammar and lifecycle are
-documented in the [bundle example](examples/bundle/README.md).
+single-shim manifest fields. Optional `payload_dir=/tmp/mnt/data_persist/custom-dir`
+allows configuring a custom persistent folder for payload files (`shim`, `file`,
+`config`), defaulting to `/tmp/mnt/data_persist/mzd-tweaks/shims/<id>`. Component/config-map
+grammar and lifecycle are documented in the [bundle example](examples/bundle/README.md).
 
 ## Attribution
 

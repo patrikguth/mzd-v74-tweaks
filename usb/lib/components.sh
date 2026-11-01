@@ -11,6 +11,7 @@ mzd_components() (
     component_output=$(mktemp /tmp/mzd-components.XXXXXX) || exit 1
     trap 'rm -f "$component_output"' 0
     if awk -v mode="$component_mode" -v id="$ID" -v storage="$MZD_COMPONENT_STORAGE" \
+        -v payload_dir="${PAYLOAD_DIR:-}" \
         -v primary="$APP" -v original="$ORIGINAL" -v lock="$LOCK" \
         -f "$component_reader" "$component_file" > "$component_output"; then
         cat "$component_output"

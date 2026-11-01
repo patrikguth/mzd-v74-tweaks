@@ -356,7 +356,7 @@
         });
     }
     function parseManifest(id, raw) {
-        var m = {}, lines = raw.split("\n"), fields = "contract_version id name description version type group firmware entrypoint actions target oem_backup_md5 lock_group status_scope reboot_required requires conflicts progress confirmation refresh_all reset_entrypoint settings shim_service shim_asset shim_path shim_extra_targets shim_checks components contributors gui_api gui_menu_path gui_label gui_entrypoint".split(" ");
+        var m = {}, lines = raw.split("\n"), fields = "contract_version id name description version type group firmware entrypoint actions target oem_backup_md5 lock_group status_scope reboot_required requires conflicts progress confirmation refresh_all reset_entrypoint settings shim_service shim_asset shim_path shim_extra_targets shim_checks components contributors payload_dir gui_api gui_menu_path gui_label gui_entrypoint".split(" ");
         for (var n = 0; n < lines.length; n++) {
             var line = lines[n].replace(/\r$/, "");
             if (/[\x00-\x1f\x7f]/.test(line)) throw new Error("Manifest contains control characters.");
