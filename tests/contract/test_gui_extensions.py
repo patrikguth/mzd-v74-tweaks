@@ -7,6 +7,18 @@ def bp(p):
  s=Path(p).resolve().as_posix();return '/'+s[0].lower()+s[2:] if len(s)>1 and s[1]==':' else s
 def write(p,s):
  p.parent.mkdir(parents=True,exist_ok=True);p.write_text(s,encoding='utf-8',newline='\n');p.chmod(0o755)
+# Resolve real commands before installing failure-injection wrappers. Alpine keeps
+# these applets outside /usr/bin; the BusyBox job must use its supplied binary.
+def real_command(name):
+ if os.environ.get('CMU_TEST_BUSYBOX'):
+  busybox=shutil.which('busybox')
+  assert busybox, 'BusyBox requested but missing.'
+  return shlex.quote(bp(busybox))+' '+name
+ result=subprocess.run([SHELL,'-c','command -v '+name],capture_output=True,text=True,check=True)
+ command=result.stdout.strip()
+ assert command.startswith('/'), 'Expected an absolute command path: '+command
+ return shlex.quote(command)
+copy_command=real_command('cp');remove_command=real_command('rm')
 checks=0
 with tempfile.TemporaryDirectory(prefix='cmu-gui-') as folder:
  b=Path(folder);usb=b/'usb';data=b/'data';base=data/'integration';persist=b/'persist';provider=persist/'mzd-tweaks/gui-provider';bins=b/'bin';version=b/'version';mounts=b/'mounts';events=b/'events'
@@ -36,9 +48,9 @@ for arg do destination=$arg; done
 if [ "$destination" = '''+shlex.quote(bp(base/'developer_mode_GuiConfig.js'))+''' ] && [ -f '''+shlex.quote(bp(b/'fail-hook'))+''' ]; then exit 1; fi
 if [ "$destination" = '''+shlex.quote(bp(base/'developer_mode_GuiConfig.js'))+''' ] && [ -f '''+shlex.quote(bp(b/'fail-signal'))+''' ]; then kill -TERM "$PPID"; exit 1; fi
 if [ "$destination" = '''+shlex.quote(bp(base/'mzd-gui-runtime'))+''' ] && [ -f '''+shlex.quote(bp(b/'fail-rollback-runtime'))+''' ]; then exit 1; fi
-exec /usr/bin/cp "$@"
+exec '''+copy_command+''' "$@"
 ''')
- write(bins/'rm','#!/bin/sh\nfor arg do destination=$arg; done\nif [ "$destination" = '+shlex.quote(bp(base/'mzd-gui-runtime'))+' ] && [ -f '+shlex.quote(bp(b/'fail-remove'))+' ]; then /usr/bin/rm -f '+shlex.quote(bp(b/'fail-remove'))+'; exit 1; fi\nexec /usr/bin/rm "$@"\n')
+ write(bins/'rm','#!/bin/sh\nfor arg do destination=$arg; done\nif [ "$destination" = '+shlex.quote(bp(base/'mzd-gui-runtime'))+' ] && [ -f '+shlex.quote(bp(b/'fail-remove'))+' ]; then '+remove_command+' -f '+shlex.quote(bp(b/'fail-remove'))+'; exit 1; fi\nexec '+remove_command+' "$@"\n')
  def call(id_,action,code=0,out=None):
   global checks
   r=subprocess.run([SHELL,bp(usb/'installer.sh'),'action',id_,action],capture_output=True,text=True,timeout=60)
