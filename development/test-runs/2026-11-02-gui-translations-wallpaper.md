@@ -41,3 +41,18 @@ awk field separator issue was corrected and checked on the CMU.
 Not every locale/font/layout has been manually reviewed. Arbitrary physical power
 loss has not been proven; journal crash states have isolated fault coverage.
 Private offline factory-runtime investigations remain outside the repository.
+
+## CI follow-up: Restore of absent GUI consumers
+
+The first development CI run exposed a Restore regression: uninstalled USB GUI
+consumers were unnecessarily prepared, so the absent Wallpaper Manager required
+Lua. Reset now returns without mutation when both module and package receipt
+are absent (retained user data is not an installation). A dedicated fixture
+makes any Lua call fail and verifies that Restore removes installed GUI consumers
+while retaining user content and leaving service startup untouched. Test failures
+now include the relevant bounded run.log output.
+
+Also corrected a boolean capability flag accidentally changed along with the
+i18n version marker. A fixture verifies that translated consumers refuse an old
+provider before publishing a failed package receipt. Installer 0.10.1, provider
+0.3.2; no firmware payload or game behavior changes.

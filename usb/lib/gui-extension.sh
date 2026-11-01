@@ -300,8 +300,13 @@ mzd_gui_reset() {
     SELF=$(readlink -f "$0") || exit 1; HERE=$(dirname "$SELF"); ROOT=$(CDPATH= cd "$HERE/../.." && pwd) || exit 1
     for library in manifest report system packages gui-services; do . "$ROOT/lib/$library.sh" || exit 1; done
     mzd_manifest_load "$HERE/manifest.conf" || exit 1
+    case "$1" in check|prepare|finish) ;; *) exit 1 ;; esac
+    # Restore also visits uninstalled USB tweaks. Retained user data alone is not
+    # an installation: do not initialize its service or rewrite shared support.
+    if [ ! -e "$MZD_GUI_MODULES/$ID" ] && [ ! -L "$MZD_GUI_MODULES/$ID" ] &&
+        [ ! -e "$MZD_PACKAGE_STORE/$ID" ] && [ ! -L "$MZD_PACKAGE_STORE/$ID" ]; then exit 0; fi
     mzd_gui_locations && mzd_gui_support && mzd_gui_module_owned "$HERE" "$MZD_GUI_MODULES/$ID" || exit 1
-    case "$1" in check) exit 0 ;; prepare|finish) ;; *) exit 1 ;; esac
+    [ "$1" != check ] || exit 0
     [ "${ACTION:-}" = run ] && [ -d "${MZD_SYSTEM:-}" ] && [ -d "${MZD_RESET_DIR:-}" ] || exit 1
     if [ "$1" = prepare ]; then
         mzd_system_lock "$LOCK" && mzd_system_remount_rw /tmp/mnt/data && mzd_system_remount_rw /tmp/mnt/data_persist || exit 1

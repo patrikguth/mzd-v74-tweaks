@@ -11,7 +11,7 @@ mzd_gui_data_owned() (
 )
 mzd_gui_capabilities() (
     needs_i18n=0; needs_resident=0
-    [ -z "$GUI_TRANSLATIONS" ] || needs_i18n=2
+    [ -z "$GUI_TRANSLATIONS" ] || needs_i18n=1
     [ -z "$GUI_RESIDENT$GUI_SERVICE" ] || needs_resident=1
     [ -z "$GUI_RESIDENT" ] || [ -f "$HERE/$GUI_RESIDENT" ] && [ ! -L "$HERE/$GUI_RESIDENT" ] || exit 1
     [ -z "$GUI_SERVICE" ] || [ -f "$HERE/$GUI_SERVICE" ] && [ ! -L "$HERE/$GUI_SERVICE" ] || exit 1
@@ -35,6 +35,7 @@ mzd_gui_capabilities() (
 )
 
 mzd_gui_startup_ok() {
+    [ -f "$MZD_GUI_STARTUP" ] && [ ! -L "$MZD_GUI_STARTUP" ] || return 1
     awk '
       $0=="# MZD shared GUI services" {markers++; adjacent=1;next}
       $0=="sh /data/integration/mzd-gui-runtime/service/supervisor.sh boot >/dev/null 2>&1 &" {commands++;if(adjacent)pairs++}

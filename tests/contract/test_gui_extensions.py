@@ -72,7 +72,11 @@ exec '''+copy_command+''' "$@"
  def call(id_,action,code=0,out=None):
   global checks
   r=subprocess.run([SHELL,bp(usb/'installer.sh'),'action',id_,action],capture_output=True,text=True,timeout=180 if os.name=='nt' else 60)
-  assert r.returncode==code,(id_,action,code,r.returncode,r.stdout,r.stderr)
+  detail=''
+  if r.returncode!=code:
+   logs=sorted((usb/'reports'/id_).rglob('run.log'),key=lambda p:p.stat().st_mtime)
+   detail='\n'.join(p.read_text(encoding='utf-8',errors='replace')[-16000:] for p in logs[-2:])
+  assert r.returncode==code,(id_,action,code,r.returncode,r.stdout,r.stderr,detail)
   if out is not None:assert r.stdout==out+'\n',(r.stdout,r.stderr)
   checks+=1;return r
  def deep(id_,expected):
@@ -126,6 +130,30 @@ exec '''+copy_command+''' "$@"
   call('wallpaper-manager','uninstall');absent();assert startup.read_bytes()==original
   print('WALLPAPER_PACKAGE_PASSED:',checks,'real actions; image-free public payload, mixed consumers, both removal orders and retained user data.')
   raise SystemExit(0)
+ if '--i18n-compat-only' in sys.argv:
+  call('gui-example','install')
+  for folder in [provider, persist/'mzd-tweaks/installed/gui-example']:
+   api=folder/'package/lib/gui-runtime/api.conf';write(api,api.read_text().replace('i18n=2\n',''))
+   inventory='provider.files' if folder==provider else 'package.files'
+   subprocess.run([SHELL,'-c','. '+shlex.quote(bp(usb/'lib/packages.sh'))+'; mzd_package_inventory '+shlex.quote(bp(folder))+' > '+shlex.quote(bp(folder/inventory))],check=True)
+  api=runtime/'api.conf';write(api,api.read_text().replace('i18n=2\n',''))
+  result=call('tetris','install',1)
+  assert 'predates translations' in result.stdout+result.stderr
+  assert not (persist/'mzd-tweaks/installed/tetris').exists(),'failed capability check published a receipt'
+  call('gui-example','uninstall');absent()
+  print('GUI_I18N_COMPAT_PASSED:',checks,'real actions; old provider refused before staging.')
+  raise SystemExit(0)
+ if '--restore-only' in sys.argv:
+  # An uninstalled service consumer must not invoke Lua, even with retained data.
+  write(bins/'lua','#!/bin/sh\nprintf \"unexpected Lua during Restore\\n\" >&2\nexit 90\n')
+  retained=persist/'mzd-tweaks/gui-data/wallpaper-manager'
+  write(retained/'owner','MZD_GUI_DATA_V1\nwallpaper-manager\n');write(retained/'keep','user content\n')
+  call('gui-example','install');call('second-example','install');call('restore-originals','run');absent()
+  assert not list((persist/'mzd-tweaks/installed').glob('*'))
+  assert (retained/'keep').read_text()=='user content\n'
+  assert not (b/'startup').exists(),'uninstalled service consumer changed startup'
+  print('GUI_RESTORE_PASSED:',checks,'real actions; mixed GUI reset and last shared-support cleanup.')
+  raise SystemExit(0)
  if '--tetris-only' in sys.argv:
   deep('tetris','uninstalled');call('tetris','install');deep('tetris','installed');original_hook=hook.read_bytes()
   assert 'menuPath:"Traffic Jam"' in registry.read_text()
@@ -160,10 +188,29 @@ exec '''+copy_command+''' "$@"
   call('gui-example','uninstall');absent()
   print('GUI_INTERRUPT_PASSED:',checks,'real actions; caught TERM rolls back first publication and saved cleanup works.')
   raise SystemExit(0)
+ if '--i18n-compat-only' in sys.argv:
+  call('gui-example','install')
+  for folder in [provider, persist/'mzd-tweaks/installed/gui-example']:
+   api=folder/'package/lib/gui-runtime/api.conf';write(api,api.read_text().replace('i18n=2\n',''))
+   inventory='provider.files' if folder==provider else 'package.files'
+   subprocess.run([SHELL,'-c','. '+shlex.quote(bp(usb/'lib/packages.sh'))+'; mzd_package_inventory '+shlex.quote(bp(folder))+' > '+shlex.quote(bp(folder/inventory))],check=True)
+  api=runtime/'api.conf';write(api,api.read_text().replace('i18n=2\n',''))
+  result=call('tetris','install',1)
+  assert 'predates translations' in result.stdout+result.stderr
+  assert not (persist/'mzd-tweaks/installed/tetris').exists(),'failed capability check published a receipt'
+  call('gui-example','uninstall');absent()
+  print('GUI_I18N_COMPAT_PASSED:',checks,'real actions; old provider refused before staging.')
+  raise SystemExit(0)
  if '--restore-only' in sys.argv:
+  # An uninstalled service consumer must not invoke Lua, even with retained data.
+  write(bins/'lua','#!/bin/sh\nprintf \"unexpected Lua during Restore\\n\" >&2\nexit 90\n')
+  retained=persist/'mzd-tweaks/gui-data/wallpaper-manager'
+  write(retained/'owner','MZD_GUI_DATA_V1\nwallpaper-manager\n');write(retained/'keep','user content\n')
   call('gui-example','install');call('second-example','install');call('restore-originals','run');absent()
   assert not list((persist/'mzd-tweaks/installed').glob('*')),'Restore retained GUI receipts'
   assert len(list(usb.glob('reports/restore-originals/run-*/reset-hooks/*/gui-transaction.*/before/module/manifest.conf')))==2,'Reset hook archives missing'
+  assert (retained/'keep').read_text()=='user content\n'
+  assert not (b/'startup').exists(),'uninstalled service consumer changed startup'
   print('GUI_RESTORE_PASSED:',checks,'real actions; two saved consumers, shared cleanup and receipt removal.')
   raise SystemExit(0)
  if '--status-only' in sys.argv:
