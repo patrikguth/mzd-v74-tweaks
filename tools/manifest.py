@@ -4,8 +4,8 @@ from settings_schema import definitions
 
 FIELDS = ('contract_version id name description version type group firmware '
           'entrypoint actions target oem_backup_md5 lock_group status_scope '
-          'reboot_required requires conflicts progress confirmation refresh_all reset_entrypoint settings shim_service shim_asset shim_path shim_extra_targets shim_checks components contributors payload_dir gui_api gui_menu_path gui_label gui_entrypoint').split()
-REQUIRED = set(FIELDS) - {'target', 'oem_backup_md5', 'lock_group', 'progress', 'confirmation', 'refresh_all', 'reset_entrypoint', 'settings', 'shim_service', 'shim_asset', 'shim_path', 'shim_extra_targets', 'shim_checks', 'components', 'contributors', 'payload_dir', 'gui_api', 'gui_menu_path', 'gui_label', 'gui_entrypoint'}
+          'reboot_required requires conflicts progress confirmation refresh_all reset_entrypoint settings shim_service shim_asset shim_path shim_extra_targets shim_checks components contributors payload_dir gui_api gui_menu_path gui_label gui_entrypoint gui_resident gui_service gui_translations').split()
+REQUIRED = set(FIELDS) - {'target', 'oem_backup_md5', 'lock_group', 'progress', 'confirmation', 'refresh_all', 'reset_entrypoint', 'settings', 'shim_service', 'shim_asset', 'shim_path', 'shim_extra_targets', 'shim_checks', 'components', 'contributors', 'payload_dir', 'gui_api', 'gui_menu_path', 'gui_label', 'gui_entrypoint', 'gui_resident', 'gui_service', 'gui_translations'}
 ID = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')
 VERSION = re.compile(r'^[0-9]+\.[0-9]+\.[0-9]+$')
 
@@ -48,6 +48,14 @@ def parse(text):
         if len(values[key].split()) != len(set(values[key].split())):
             raise ValueError('Duplicate dependency ID.')
     if values['type'] == 'gui-extension':
+        for key, suffix in [('gui_resident', 'js'), ('gui_service', 'lua'), ('gui_translations', 'js')]:
+            path = values.get(key, '')
+            if key in values and not path:
+                raise ValueError('GUI capability paths cannot be empty.')
+            if path and (not re.fullmatch(r'assets/[A-Za-z0-9_./-]+[.]'+suffix, path) or re.search(r'(^|/)\.\.?($|/)', path)):
+                raise ValueError('Invalid GUI capability path.')
+        if values.get('gui_service') and not values.get('gui_resident'):
+            raise ValueError('A GUI service requires a resident controller.')
         menu_path = values.get('gui_menu_path', '')
         segments = menu_path.split('/') if menu_path else []
         if len(menu_path)>240 or len(segments)>8 or any(not x or x in ['.','..'] or len(x)>80 or x.strip()!=x for x in segments):
@@ -61,7 +69,7 @@ def parse(text):
                 or not re.fullmatch(r'assets/[A-Za-z0-9_./-]+[.]html', values.get('gui_entrypoint', ''))
                 or any(x in ['.', '..'] for x in values['gui_entrypoint'].split('/'))):
             raise ValueError('Invalid GUI extension metadata.')
-    elif any(values.get(k) for k in ['gui_api','gui_menu_path','gui_label','gui_entrypoint']):
+    elif any(k in values for k in ['gui_resident','gui_service','gui_translations']) or any(values.get(k) for k in ['gui_api','gui_menu_path','gui_label','gui_entrypoint','gui_resident','gui_service','gui_translations']):
         raise ValueError('GUI metadata requires gui-extension type.')
     if values['type'] not in ['command', 'gui-extension']:
         if not values.get('target', '').startswith('/'):

@@ -2,11 +2,14 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {fixture}=require('./behavior.cjs'),f=fixture({sharedGui:true}),sent=[];
 const parent={postMessage(message){sent.push(message);}};f.window.parent=parent;f.window.location={hash:'#mzdgui=test-token'};
 const root=path.resolve(__dirname,'../../..');vm.runInNewContext(fs.readFileSync(path.join(root,'usb/lib/gui-runtime/sdk.js'),'utf8'),{window:f.window});
-vm.runInNewContext(fs.readFileSync(path.join(root,'usb/tweaks/tetris/assets/shared-adapter.js'),'utf8'),{window:f.window});
-assert.equal(f.listeners.keydown,undefined,'SDK mode must not register duplicate game keyboard handlers');assert.equal(sent[0].type,'mzd-gui-ready');
+vm.runInNewContext(fs.readFileSync(path.join(root,'usb/tweaks/tetris/assets/shared-adapter.js'),'utf8'),{window:f.window,document:f.document});
+assert.equal(f.listeners.keydown,undefined,'SDK mode must not register duplicate game keyboard handlers');assert(sent.some(x=>x.type==='mzd-gui-ready'));assert(sent.some(x=>x.type==='mzd-gui-language-request'));
 function input(action,phase){f.windowListeners.message({source:parent,data:{type:'mzd-gui-input',token:'test-token',action,phase}});}
+let dictionary;vm.runInNewContext(fs.readFileSync(path.join(root,'usb/tweaks/tetris/assets/i18n.js'),'utf8'),{window:{MzdGuiI18n:{register(id,value){dictionary=value;}}}});
+f.windowListeners.message({source:parent,data:{type:'mzd-gui-language',token:'test-token',value:{language:'de_DE',direction:'ltr',texts:dictionary.languages.de_DE}}});
+assert.equal(f.elements.menu.children[0].textContent,'Start');assert.equal(f.elements.menu.children[1].textContent,'Beenden');
 input('select','press');input('select','press');assert.equal(f.api.getState().score,0);input('select','release');input('select','press');input('select','release');assert(f.api.getState().score>0);
-input('back','press');assert.equal(f.api.getState().screen,'play');input('back','step');assert.equal(f.api.getState().screen,'pause');assert(!sent.some(x=>x.type==='mzd-gui-close'));
+input('back','press');assert.equal(f.api.getState().screen,'play');input('back','step');assert.equal(f.api.getState().screen,'pause');assert(!sent.some(x=>x.type==='mzd-gui-close'));assert.equal(f.elements.menu.children[0].textContent,'Fortsetzen');
 input('back','step');assert.equal(f.api.getState().screen,'play');input('back','step');input('down','press');input('down','release');input('down','press');input('down','release');input('select','press');assert(sent.some(x=>x.type==='mzd-gui-close'),'Exit must return to shared menu');
 f.window.MzdGuiModule._dispose();assert(f.cancelled());assert.equal(Object.keys(f.listeners).length,0);assert.equal(Object.keys(f.windowListeners).length,0);
 const payload=path.join(root,'usb/tweaks/tetris/assets');assert(!fs.existsSync(path.join(payload,'developer_mode_GuiConfig.js')));assert(!fs.existsSync(path.join(payload,'mzd-games')));assert(fs.readFileSync(path.join(payload,'tetris.html'),'utf8').includes('mzd-gui-runtime/sdk.js'));assert(!fs.readFileSync(path.join(payload,'style.css'),'utf8').includes('oem-preview/'));

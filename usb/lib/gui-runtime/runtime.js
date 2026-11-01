@@ -3,16 +3,37 @@
     'use strict';
     if (window.MzdGuiRuntime) { return; }
     var modules = [], groups = [], rows = [], names = [], fw, proto, originalInit, originalStructure, originalSend;
-    var initWrapper, structureWrapper, sendWrapper, active = null, installed = false, attempts = 0, timer;
+    var initWrapper, structureWrapper, sendWrapper, active = null, installed = false, attempts = 0, timer, languageCleanups = [];
     var prefix = 'MzdGui.Open.';
     function note(message) { try { if (window.log && window.log.info) { window.log.info('[mzd-gui] ' + message); } } catch (ignore) {} }
     function applications() { return fw.getCurrentApp() === 'system' && fw.getCurrCtxtId() === 'Applications'; }
+    function label(item) {
+        var i, depth;
+        if (!window.MzdGuiI18n) { return item.label; }
+        if (item.kind === 'module') { return window.MzdGuiI18n.text(item.id,'gui.label',item.label); }
+        depth = item.path.split('/').length - 1;
+        for (i = 0; i < modules.length; i += 1) {
+            if (modules[i].translations && (modules[i].menuPath === item.path || modules[i].menuPath.indexOf(item.path+'/') === 0)) {
+                return window.MzdGuiI18n.text(modules[i].id,'gui.menu.'+depth,item.label);
+            }
+        }
+        return item.label;
+    }
+    function backLabel(path, fallback) {
+        var i;
+        if (window.MzdGuiI18n) { for (i = 0; i < modules.length; i += 1) {
+            if (modules[i].translations && (modules[i].menuPath === path || modules[i].menuPath.indexOf(path+'/') === 0)) {
+                return window.MzdGuiI18n.text(modules[i].id,path.indexOf('/') >= 0 ? 'gui.back' : 'gui.backToApplications',fallback);
+            }
+        } }
+        return fallback;
+    }
     function entries() {
         var result = [], n;
         for (n = 0; n < modules.length; n += 1) {
-            if (!modules[n].menuPath) { result.push({id:modules[n].id,label:modules[n].label,kind:'module'}); }
+            if (!modules[n].menuPath) { result.push({id:modules[n].id,label:label(modules[n]),kind:'module'}); }
         }
-        for (n = 0; n < groups.length; n += 1) { if (!groups[n].parentPath) { result.push({id:groups[n].id,label:groups[n].label,kind:'menu'}); } }
+        for (n = 0; n < groups.length; n += 1) { if (!groups[n].parentPath) { result.push({id:groups[n].id,label:label(groups[n]),kind:'menu'}); } }
         return result;
     }
     function decorate(app) {
@@ -25,6 +46,7 @@
                 row = {appData:{appName:name,isVisible:true,audioSourceId:'None',mmuiEvent:prefix+all[n].kind+'.'+all[n].id},text1Id:null,text1:all[n].label,itemStyle:'style01',hasCaret:all[n].kind === 'menu',disabled:false};
                 master.items.push(row); rows.push(row);
             } else if (rows.indexOf(master.items[j]) < 0) { note('Conflicting Applications entry: ' + name); continue; }
+            if (rows.indexOf(master.items[j]) >= 0) { master.items[j].text1 = all[n].label; }
             if (map.Applications.indexOf(name) < 0) { map.Applications.push(name); names.push(name); }
         }
     }
@@ -32,6 +54,8 @@
         var old = active;
         if (!old) { return; } active = null;
         window.clearTimeout(old.timeout); window.clearTimeout(old.selectionTimer); window.clearInterval(old.monitor);
+        if (old.module && window.MzdGuiResidents) { window.MzdGuiResidents.view(old.module.id,null); }
+        if (old.languageCleanup) { old.languageCleanup(); }
         disposeMenu(old);
         if (old.baseTemplate && old.baseTemplate.divElt && old.baseTemplate.divElt.style.visibility === 'hidden') {
             old.baseTemplate.divElt.style.visibility = old.baseVisibility;
@@ -60,21 +84,26 @@
     function submenu(message) {
         var session = active, root = session.root, n, item, items = [], control;
         window.clearTimeout(session.timeout); window.clearTimeout(session.selectionTimer);
+        if (session.languageCleanup) { session.languageCleanup(); session.languageCleanup = null; }
         disposeMenu(session);
         if (session.frame) { try { if (session.frame.contentWindow.MzdGuiModule) { session.frame.contentWindow.MzdGuiModule._dispose(); } } catch (ignore) {} }
+        if (session.module && window.MzdGuiResidents) { window.MzdGuiResidents.view(session.module.id,null); }
+        session.module = null;
         session.frame = null; session.list = []; session.keys = {}; root.innerHTML = '';
         root.className = 'TemplateWithStatusLeft List2Tmplt';
         root.style.left = '60px'; root.style.top = '64px'; root.style.width = '740px'; root.style.height = '416px';
         root.style.zIndex = '7'; root.style.background = 'transparent'; root.style.overflow = 'visible';
         if (fw.common && typeof fw.common.setSbName === 'function') {
-            session.sbChanged = true; fw.common.setSbName(message || session.parent.substring(session.parent.lastIndexOf('/')+1));
+            session.sbChanged = true; var title = session.parent.substring(session.parent.lastIndexOf('/')+1);
+            for (n = 0; n < groups.length; n += 1) { if (groups[n].path === session.parent) { title = label(groups[n]); } }
+            fw.common.setSbName(message || title);
         }
         for (n = 0; n < groups.length; n += 1) { if (groups[n].parentPath === session.parent) { session.list.push(groups[n]); } }
         for (n = 0; n < modules.length; n += 1) { if (modules[n].menuPath === session.parent) { session.list.push(modules[n]); } }
-        session.list.push({id:'exit',label:session.parent.indexOf('/') >= 0 ? 'Back' : 'Back to Applications'});
+        session.list.push({id:'exit',label:backLabel(session.parent,session.parent.indexOf('/') >= 0 ? 'Back' : 'Back to Applications')});
         for (n = 0; n < session.list.length; n += 1) {
             item = session.list[n];
-            items.push({appData:{mzdGuiItem:item},text1Id:null,text1:item.label,itemStyle:'style01',hasCaret:item.kind === 'menu',disabled:false});
+            items.push({appData:{mzdGuiItem:item},text1Id:null,text1:item.id === 'exit' ? item.label : label(item),itemStyle:'style01',hasCaret:item.kind === 'menu',disabled:false});
         }
         if (typeof fw.instantiateControl !== 'function' || typeof fw.destroyControl !== 'function') { throw new Error('Mazda list API unavailable'); }
         control = fw.instantiateControl('system',root,'List2Ctrl',{
@@ -95,6 +124,7 @@
     }
     function launch(module) {
         var frame = document.createElement('iframe'), session = active;
+        if (session.languageCleanup) { session.languageCleanup(); session.languageCleanup = null; }
         disposeMenu(session);
         active.root.className = ''; active.root.style.zIndex = '10000'; active.root.style.background = '#000'; active.root.style.overflow = 'hidden';
         active.root.style.left = '0px'; active.root.style.top = '0px'; active.root.style.width = '800px'; active.root.style.height = '480px'; active.root.style.backgroundPosition = '0 0';
@@ -104,6 +134,7 @@
         frame.onerror = guarded(function () { if (active === session && active.frame === frame) { failed('View failed to load'); } });
         active.timeout = window.setTimeout(guarded(function () { if (active === session && active.frame === frame) { failed('View startup timed out'); } }),8000);
         frame.src = module.entrypoint + '#mzdgui=' + active.token; active.root.appendChild(frame);
+        if (window.MzdGuiResidents) { window.MzdGuiResidents.view(module.id,{source:frame.contentWindow,frame:frame,token:active.token}); }
     }
     function failed(message) {
         note(message);
@@ -154,6 +185,15 @@
     function receive(event) {
         var data = event.data;
         if (!active || !active.frame || event.source !== active.frame.contentWindow || !data || data.token !== active.token) { return; }
+        if (active.module && window.MzdGuiResidents) { window.MzdGuiResidents.message(active.module.id,event); }
+        if (data.type === 'mzd-gui-language-request' && active.module) {
+            if (active.languageCleanup) { active.languageCleanup(); }
+            var session = active, deliver = function (value) {
+                if (active === session && session.frame) { session.frame.contentWindow.postMessage({type:'mzd-gui-language',token:session.token,value:value},'*'); }
+            };
+            if (window.MzdGuiI18n) { active.languageCleanup = window.MzdGuiI18n.load(active.module.id,deliver); }
+            else { deliver({language:'en_US',direction:'ltr',texts:{}}); }
+        }
         if (data.type === 'mzd-gui-ready') { window.clearTimeout(active.timeout); try { active.frame.contentWindow.focus(); } catch (ignore) {} }
         else if (data.type === 'mzd-gui-close') { if (active.parent) { submenu(''); } else { close(true); } }
         else if (data.type === 'mzd-gui-error') { failed(String(data.message || 'Module error').substring(0,512)); }
@@ -168,6 +208,9 @@
     function disable() {
         var app, master, map, n;
         installed = false;
+        while (languageCleanups.length) { languageCleanups.pop()(); }
+        if (window.MzdGuiI18n) { window.MzdGuiI18n.dispose(); }
+        if (window.MzdGuiResidents) { window.MzdGuiResidents.dispose(); }
         window.clearInterval(timer);
         try { close(false); } catch (ignore) {}
         window.removeEventListener('keydown',safeDown,true); window.removeEventListener('keyup',safeUp,true); window.removeEventListener('message',safeReceive,false);
@@ -198,6 +241,15 @@
         installed = true;
         window.addEventListener('keydown',safeDown,true); window.addEventListener('keyup',safeUp,true); window.addEventListener('message',safeReceive,false);
         app = fw.getAppInstance('system'); if (app) { decorate(app); }
+        if (window.MzdGuiI18n) {
+            window.MzdGuiI18n.start(modules);
+            modules.forEach(function (module) {
+                if (module.translations) { languageCleanups.push(window.MzdGuiI18n.load(module.id,function () {
+                    if (installed) { var app = fw.getAppInstance('system'); if (app) { decorate(app); } }
+                })); }
+            });
+        }
+        if (window.MzdGuiResidents) { window.MzdGuiResidents.start(modules); }
         return true;
     }
     try {

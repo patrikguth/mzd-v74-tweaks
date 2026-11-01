@@ -11,6 +11,9 @@ mzd_gui_assets() (
     folder=$1
     [ -d "$folder/assets" ] && [ ! -L "$folder/assets" ] && mzd_package_tree_ok "$folder/assets" || exit 1
     find "$folder/assets" -print | LC_ALL=C awk -v p="$folder/" 'index($0,p)!=1 {bad=1} {s=substr($0,length(p)+1);if(s!~/^[A-Za-z0-9_.\/-]+$/ || s~/(^|\/)\.\.?($|\/)/)bad=1;n++} END {exit(bad || n>512)}' || mzd_gui_error 'Unsupported or excessive GUI asset paths.'
+    for capability in "$GUI_RESIDENT" "$GUI_SERVICE" "$GUI_TRANSLATIONS"; do
+        [ -z "$capability" ] || { [ -f "$folder/$capability" ] && [ ! -L "$folder/$capability" ]; } || mzd_gui_error 'Declared GUI capability is missing.'
+    done
     [ -f "$folder/$GUI_ENTRYPOINT" ] && [ ! -L "$folder/$GUI_ENTRYPOINT" ] || mzd_gui_error 'GUI entrypoint is missing.'
 )
 mzd_gui_paths() (
@@ -47,27 +50,34 @@ mzd_gui_module_complete() (
 )
 mzd_gui_support() (
     if [ ! -e "$MZD_GUI_PROVIDER" ]; then
-        [ ! -e "$MZD_GUI_HOOK" ] && [ ! -e "$MZD_GUI_RUNTIME" ] && [ ! -e "$MZD_GUI_REGISTRY" ] || mzd_gui_error 'Foreign GUI hook/runtime exists; nothing overwritten.'
+        [ ! -e "$MZD_GUI_HOOK" ] && [ ! -e "$MZD_GUI_RUNTIME" ] && [ ! -e "$MZD_GUI_REGISTRY" ] && [ ! -e "$MZD_GUI_SERVICES" ] || mzd_gui_error 'Foreign GUI hook/runtime exists; nothing overwritten.'
         exit $?
     fi
     mzd_package_tree_ok "$MZD_GUI_PROVIDER" || exit 1
     mzd_package_tree_ok "$MZD_GUI_RUNTIME" || exit 1
     for path in "$MZD_GUI_PROVIDER"/* "$MZD_GUI_PROVIDER"/.[!.]* "$MZD_GUI_PROVIDER"/..?*; do
         [ -e "$path" ] || continue
-        case "${path##*/}" in package|provider.files|format|registry.js) ;; *) mzd_gui_error 'Unknown provider receipt file.'; exit 1 ;; esac
+        case "${path##*/}" in package|provider.files|format|registry.js|services.tsv) ;; *) mzd_gui_error 'Unknown provider receipt file.'; exit 1 ;; esac
     done
     awk 'NR==1 {if($0!="MZD_GUI_PROVIDER_V1")bad=1;next} NR==2 {if($0!="modules-root-owned")bad=1;next} {bad=1} END {exit(bad || NR<1)}' "$MZD_GUI_PROVIDER/format" &&
         mzd_line_is api=1 "$MZD_GUI_PROVIDER/package/lib/gui-runtime/api.conf" || mzd_gui_error 'Incompatible GUI provider API.'
     scratch=$(mktemp /tmp/mzd-gui-inventory.XXXXXX) || exit 1
     trap 'rm -f "$scratch"' 0
     mzd_package_inventory "$MZD_GUI_PROVIDER" > "$scratch" && cmp -s "$scratch" "$MZD_GUI_PROVIDER/provider.files" || mzd_gui_error 'GUI provider snapshot is changed.'
+    if [ -e "$MZD_GUI_SERVICES" ] || [ -e "$MZD_GUI_PROVIDER/services.tsv" ]; then
+        [ ! -L "$MZD_GUI_SERVICES" ] && [ ! -L "$MZD_GUI_PROVIDER/services.tsv" ] && cmp -s "$MZD_GUI_SERVICES" "$MZD_GUI_PROVIDER/services.tsv" || mzd_gui_error 'Shared service registry is missing or changed.'
+    fi
     cmp -s "$MZD_GUI_HOOK" "$MZD_GUI_PROVIDER/package/lib/gui-runtime/boot.js" &&
         diff -r "$MZD_GUI_PROVIDER/package/lib/gui-runtime" "$MZD_GUI_RUNTIME" >/dev/null &&
         cmp -s "$MZD_GUI_REGISTRY" "$MZD_GUI_PROVIDER/registry.js" || mzd_gui_error 'Deployed GUI support is missing or changed.'
 )
 mzd_gui_record() (
     mzd_manifest_load "$1/manifest.conf" || exit 1
-    printf '%s\t%s\t%s\t/data/integration/mzd-gui-modules/%s/%s\n' "$ID" "$GUI_MENU_PATH" "$GUI_LABEL" "$ID" "$GUI_ENTRYPOINT"
+    resident=-; service=-; translations=-
+    [ -z "$GUI_RESIDENT" ] || resident="/data/integration/mzd-gui-modules/$ID/$GUI_RESIDENT"
+    [ -z "$GUI_SERVICE" ] || service=$GUI_SERVICE
+    [ -z "$GUI_TRANSLATIONS" ] || translations="/data/integration/mzd-gui-modules/$ID/$GUI_TRANSLATIONS"
+    printf '%s\t%s\t%s\t/data/integration/mzd-gui-modules/%s/%s\t%s\t%s\t%s\n' "$ID" "$GUI_MENU_PATH" "$GUI_LABEL" "$ID" "$GUI_ENTRYPOINT" "$resident" "$service" "$translations"
 )
 # Caller/candidate is excluded; all other consumers come from verified receipts.
 mzd_gui_collect() (
@@ -116,6 +126,11 @@ mzd_gui_status() (
     if ! mzd_gui_module_complete "$HERE" "$MZD_GUI_MODULES/$ID" || [ ! -e "$MZD_GUI_PROVIDER" ]; then
         printf 'broken\n'; printf 'GUI module is incomplete.\n' >&2; exit 0
     fi
+    if [ -n "$GUI_SERVICE" ]; then
+        mzd_gui_startup_ok && mzd_gui_data_owned "$MZD_GUI_USER_DATA/$ID" "$ID" || {
+                printf 'broken\n'; printf 'GUI service startup or data ownership is incomplete.\n' >&2; exit 0;
+            }
+    fi
     printf 'installed\n'
 )
 mzd_gui_target() {
@@ -124,12 +139,14 @@ mzd_gui_target() {
         provider) printf '%s\n' "$MZD_GUI_PROVIDER" ;;
         runtime) printf '%s\n' "$MZD_GUI_RUNTIME" ;;
         hook) printf '%s\n' "$MZD_GUI_HOOK" ;;
+        services) printf '%s\n' "$MZD_GUI_SERVICES" ;;
+        startup) printf '%s\n' "$MZD_GUI_STARTUP" ;;
         registry) printf '%s\n' "$MZD_GUI_REGISTRY" ;;
         *) return 1 ;;
     esac
 }
 mzd_gui_backup() {
-    for key in module provider runtime hook registry; do
+    for key in module provider runtime hook registry services startup; do
         path=$(mzd_gui_target "$key") || return 1
         if [ -e "$path" ]; then
             cp -a "$path" "$GUI_TX/before/$key" || return 1
@@ -166,7 +183,7 @@ mzd_gui_undo() {
     result=0
     # Restore every asset before exposing the previous boot hook again.
     if mzd_line_is hook "$GUI_TX/changed"; then rm -f "$MZD_GUI_HOOK" || result=1; fi
-    for key in module runtime provider registry hook; do
+    for key in module runtime provider registry services startup hook; do
         mzd_line_is "$key" "$GUI_TX/changed" || continue
         path=$(mzd_gui_target "$key") || { result=1; continue; }
         [ ! -L "$path" ] || { result=1; continue; }
@@ -190,6 +207,7 @@ mzd_gui_transaction_finish() {
     rm -f "$MZD_GUI_DATA/.mzd-gui-registry-$$"
     if [ "$code" != 0 ] && [ ! -f "$GUI_TX/had-modules-root" ]; then rmdir "$MZD_GUI_MODULES" 2>/dev/null || :; fi
     sync
+    if [ "$rollback_failed" = 0 ]; then mzd_gui_services_start || code=2; fi
     [ "$rollback_failed" != 1 ] || mzd_fatal 'GUI rollback failed. Do NOT reboot.'
     [ "$code" != 2 ] || mzd_fatal 'GUI operation was interrupted. Do NOT reboot; inspect the retained report.'
     exit "$code"
@@ -197,6 +215,9 @@ mzd_gui_transaction_finish() {
 mzd_gui_mutate() (
     operation=$1
     mzd_gui_locations && mzd_gui_support && mzd_gui_module_owned "$HERE" "$MZD_GUI_MODULES/$ID" || exit 1
+    mzd_gui_services_preflight || exit 1
+    [ "$operation" != install ] || mzd_gui_capabilities || exit 1
+    if [ -n "$GUI_SERVICE" ] || [ -s "$MZD_GUI_SERVICES" ]; then mzd_system_lock /tmp/mzd-stage_wifi-tweak.lock || exit 1; fi
     GUI_TX=$(mktemp -d "${2:-$MZD_REPORT}/gui-transaction.XXXXXX") || exit 1
     mkdir "$GUI_TX/before" || exit 1
     : > "$GUI_TX/changed"
@@ -211,31 +232,36 @@ mzd_gui_mutate() (
     awk -f "$ROOT/lib/gui-registry.awk" "$GUI_TX/sorted" > "$GUI_TX/registry.js" || exit 1
     trap mzd_gui_transaction_finish 0
     trap 'exit 2' INT TERM
+    mzd_gui_services_stop || exit 1
     if [ "$operation" = install ]; then
         mkdir -p "$MZD_GUI_MODULES" "$(dirname "$MZD_GUI_PROVIDER")" || exit 1
         mkdir "$GUI_TX/module" || exit 1
         cp "$HERE/manifest.conf" "$GUI_TX/module/manifest.conf" && cp -R "$HERE/assets" "$GUI_TX/module/assets" || exit 1
+        mzd_gui_data_prepare || exit 1
         mzd_gui_put module "$GUI_TX/module" || exit 1
         if [ ! -e "$MZD_GUI_PROVIDER" ]; then
             [ -f "$ROOT/lib/gui-runtime/api.conf" ] && mzd_line_is api=1 "$ROOT/lib/gui-runtime/api.conf" || exit 1
             mkdir -p "$GUI_TX/provider/package/lib" || exit 1
             cp -R "$ROOT/lib/gui-runtime" "$GUI_TX/provider/package/lib/gui-runtime" || exit 1
+            cp "$ROOT/lib/lua-bridge/process.lua" "$GUI_TX/provider/package/lib/gui-runtime/service/process.lua" || exit 1
             printf 'MZD_GUI_PROVIDER_V1\n' > "$GUI_TX/provider/format"
             [ -f "$GUI_TX/had-modules-root" ] || printf 'modules-root-owned\n' >> "$GUI_TX/provider/format"
             mzd_package_inventory "$GUI_TX/provider" > "$GUI_TX/provider/provider.files" || exit 1
             mzd_gui_put provider "$GUI_TX/provider" && mzd_gui_put runtime "$GUI_TX/provider/package/lib/gui-runtime" || exit 1
             mzd_gui_write_registry || exit 1
+            mzd_gui_services_write || exit 1
             # Optional boot hook is always last on the first consumer install.
             mzd_gui_put hook "$GUI_TX/provider/package/lib/gui-runtime/boot.js" || exit 1
-        else mzd_gui_write_registry || exit 1; fi
+        else mzd_gui_write_registry && mzd_gui_services_write || exit 1; fi
     else
         if [ -e "$MZD_GUI_PROVIDER" ]; then mzd_gui_write_registry || exit 1; fi
+        mzd_gui_services_write || exit 1
         mzd_gui_remove module || exit 1
         if [ ! -s "$GUI_TX/records" ] && [ "${MZD_GUI_REPLACEMENT:-0}" != 1 ]; then
             owned_root=0
             if [ -f "$MZD_GUI_PROVIDER/format" ] && mzd_line_is modules-root-owned "$MZD_GUI_PROVIDER/format"; then owned_root=1; fi
             # No consumer remains; remove only the verified support we own.
-            for key in hook registry runtime provider; do mzd_gui_remove "$key" || exit 1; done
+            for key in hook registry services runtime provider; do mzd_gui_remove "$key" || exit 1; done
             [ "$owned_root" != 1 ] || rmdir "$MZD_GUI_MODULES" || exit 1
         fi
     fi
@@ -244,14 +270,18 @@ mzd_gui_mutate() (
 mzd_gui_main() {
     [ "$#" -le 1 ] || { printf 'Expected one action.\n' >&2; exit 1; }
     ACTION=${1:-}
-    case "$ACTION" in ''|-h|--help) printf 'Usage: sh run.sh <install|uninstall|status>\n'; exit 0 ;; install|uninstall|status) ;; *) printf 'Unsupported action.\n' >&2; exit 1 ;; esac
+    case "$ACTION" in ''|-h|--help) printf 'Usage: sh run.sh <install|uninstall|status>\n'; exit 0 ;; install|uninstall|status|validate-install) ;; *) printf 'Unsupported action.\n' >&2; exit 1 ;; esac
     SELF=$(readlink -f "$0") || exit 1
     HERE=$(dirname "$SELF"); ROOT=$(CDPATH= cd "$HERE/../.." && pwd) || exit 1
-    if [ "${MZD_WORKER_DIRECT:-}" != 1 ]; then exec sh "$ROOT/installer.sh" action "$(basename "$HERE")" "$ACTION"; fi
-    for library in manifest report system packages; do . "$ROOT/lib/$library.sh" || exit 1; done
+    if [ "${MZD_WORKER_DIRECT:-}" != 1 ] && [ "$ACTION" != validate-install ]; then exec sh "$ROOT/installer.sh" action "$(basename "$HERE")" "$ACTION"; fi
+    for library in manifest report system packages gui-services; do . "$ROOT/lib/$library.sh" || exit 1; done
     mzd_manifest_load "$HERE/manifest.conf" || exit 1
     [ "$TYPE" = gui-extension ] || exit 1
     mzd_gui_assets "$HERE" || exit 1
+    if [ "$ACTION" = validate-install ]; then
+        mzd_validate_firmware "$FIRMWARE" && mzd_gui_locations && mzd_gui_support && mzd_gui_capabilities && mzd_gui_services_preflight
+        exit $?
+    fi
     if [ "$ACTION" = status ]; then
         [ -r /jci/version.ini ] || { printf 'Cannot read firmware version.\n' >&2; exit 1; }
         if ! mzd_validate_firmware "$FIRMWARE"; then printf 'unavailable\n'; exit 0; fi
@@ -268,7 +298,7 @@ mzd_gui_main() {
 mzd_gui_reset() {
     [ "$#" = 1 ] || exit 1
     SELF=$(readlink -f "$0") || exit 1; HERE=$(dirname "$SELF"); ROOT=$(CDPATH= cd "$HERE/../.." && pwd) || exit 1
-    for library in manifest report system packages; do . "$ROOT/lib/$library.sh" || exit 1; done
+    for library in manifest report system packages gui-services; do . "$ROOT/lib/$library.sh" || exit 1; done
     mzd_manifest_load "$HERE/manifest.conf" || exit 1
     mzd_gui_locations && mzd_gui_support && mzd_gui_module_owned "$HERE" "$MZD_GUI_MODULES/$ID" || exit 1
     case "$1" in check) exit 0 ;; prepare|finish) ;; *) exit 1 ;; esac

@@ -54,3 +54,17 @@ root. Isolated tests cover rules, input, view lifecycle and shared ownership;
 DOM mocks do not prove native rendering. Bench testing established basic menus,
 controller input and return paths; long-term stability and power-loss recovery
 are not established. The iframe shares the Opera process.
+
+### Language
+
+The installed game follows the Mazda GUI language through the optional shared
+translation helper. `assets/i18n.js` contains all 41 distinct locale codes in
+the 74.00.324 framework, including Mazda's regional identifiers (`fr_CN`,
+`cs_CS`, `cn_HK`, `mn_TW`). The firmware maps its Korean enum to `en_US`.
+English variants share English; Spanish/French regional variants and Taiwanese
+Mandarin share their corresponding dictionary. Tetris and Traffic Jam remain
+proper names. Missing translations silently use English/existing text.
+The game chooses its language when opened. There is no background polling;
+reopen it after changing the Mazda language.
+Translations are initial drafts; native typography, font coverage, long labels
+and RTL scripts still need visual checks on the CMU.

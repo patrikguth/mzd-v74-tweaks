@@ -9,33 +9,33 @@
 <body>
 <main id="stage">
     <section class="left-panel">
-        <div class="eyebrow">ONE MORE LINE</div>
+        <div class="eyebrow" data-i18n="oneMore">ONE MORE LINE</div>
         <h1>Tetris</h1>
-        <div class="score-label">SCORE</div><div id="score">000000</div>
-        <div class="numbers"><div><span class="metric-label">LINES</span><strong id="lines">00</strong></div><div><span class="metric-label">LEVEL</span><strong id="level">01</strong></div></div>
+        <div class="score-label" data-i18n="score">SCORE</div><div id="score">000000</div>
+        <div class="numbers"><div><span class="metric-label" data-i18n="lines">LINES</span><strong id="lines">00</strong></div><div><span class="metric-label" data-i18n="level">LEVEL</span><strong id="level">01</strong></div></div>
         <div class="progress"><div id="progress-fill"></div></div>
-        <div class="progress-caption"><span id="remaining">10</span> lines to next level</div>
-        <div class="tag"><span></span> TAKE YOUR TIME. FIND THE GAP.</div>
+        <div class="progress-caption"><span id="remaining">10</span> <span data-i18n="toNext">lines to next level</span></div>
+        <div class="tag"><span class="tag-dot"></span> <span data-i18n="tagline">TAKE YOUR TIME. FIND THE GAP.</span></div>
     </section>
-    <div id="court"><canvas id="board" width="220" height="440" aria-label="Tetris playfield"></canvas></div>
+    <div id="court"><canvas id="board" width="220" height="440" aria-label="Tetris playfield" data-i18n-label="playfield"></canvas></div>
     <section class="right-panel">
-        <div class="eyebrow">UP NEXT</div>
-        <div class="preview"><div id="next" role="img" aria-label="Next piece"></div></div>
-        <div class="eyebrow control-title">COMMANDER</div>
-        <div class="control-row"><span class="key">&larr; &rarr;</span><span>Move piece</span></div>
-        <div class="control-row"><span class="key">TURN</span><span>Rotate</span></div>
-        <div class="control-row"><span class="key">PRESS</span><span>Drop piece</span></div>
-        <div class="control-row"><span class="key">&darr;</span><span>Soft drop</span></div>
-        <div class="control-row"><span class="key">BACK</span><span>Pause / menu</span></div>
-        <div class="keyboard">KEYBOARD: &larr; &rarr; MOVE &middot; &uarr; ROTATE<br>ENTER DROP &middot; ESC PAUSE</div>
+        <div class="eyebrow" data-i18n="next">UP NEXT</div>
+        <div class="preview"><div id="next" role="img" aria-label="Next piece" data-i18n-label="nextPiece"></div></div>
+        <div class="eyebrow control-title" data-i18n="commander">COMMANDER</div>
+        <div class="control-row"><span class="key">&larr; &rarr;</span><span data-i18n="move">Move piece</span></div>
+        <div class="control-row"><span class="key" data-i18n="turn">TURN</span><span data-i18n="rotate">Rotate</span></div>
+        <div class="control-row"><span class="key" data-i18n="press">PRESS</span><span data-i18n="drop">Drop piece</span></div>
+        <div class="control-row"><span class="key">&darr;</span><span data-i18n="softDrop">Soft drop</span></div>
+        <div class="control-row"><span class="key" data-i18n="back">BACK</span><span data-i18n="pauseMenu">Pause / menu</span></div>
+        <div class="keyboard"><span data-i18n="keyboard">KEYBOARD: Left/Right move, Up rotate, Enter drop, Esc pause</span></div>
     </section>
     <div id="shade"></div>
     <section id="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
-        <div class="eyebrow" id="dialog-kicker">LET'S PLAY</div>
-        <h2 id="dialog-title">Make room.</h2>
-        <p id="dialog-text">Stack. Rotate. Clear.</p>
+        <div class="eyebrow" id="dialog-kicker" data-i18n="letsPlay">LET'S PLAY</div>
+        <h2 id="dialog-title" data-i18n="makeRoom">Make room.</h2>
+        <p id="dialog-text" data-i18n="stack">Stack. Rotate. Clear.</p>
         <div id="menu"></div>
-        <div class="menu-hint">UP / DOWN TO CHOOSE &middot; PRESS TO SELECT</div>
+        <div class="menu-hint"><span data-i18n="menuHint">UP / DOWN TO CHOOSE - PRESS TO SELECT</span></div>
     </section>
 </main>
 <script src="/data/integration/mzd-gui-runtime/sdk.js"></script>

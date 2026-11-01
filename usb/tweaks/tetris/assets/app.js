@@ -5,6 +5,7 @@
     var preview = document.getElementById('next'), previewType = -1;
     var menu = [], choice = 0, screen = 'ready', keys = {}, held = {}, pressed = {}, lastStamp = '';
     var last = new Date().getTime(), exitHandler = null, timer, destroyed = false;
+    function tr(key, fallback, values) { var sdk = window.MzdGuiModule; return sdk && sdk.t ? sdk.t(key,fallback,values) : fallback.replace(/\{([a-zA-Z0-9_]+)\}/g,function (match,name) { return values && Object.prototype.hasOwnProperty.call(values,name) ? String(values[name]) : match; }); }
     function el(id) { return document.getElementById(id); }
     function text(id, value) { el(id).textContent = value; }
     function pad(n, width) { var s = String(n); while (s.length < width) { s = '0' + s; } return s; }
@@ -78,7 +79,7 @@
         // Never composite a DOM pause menu over the accelerated playfield.
         el('court').style.display = 'none';
         el('shade').style.display = 'block'; el('dialog').style.display = 'block';
-        text('dialog-kicker', mode === 'lobby' ? 'TRAFFIC JAM' : 'TETRIS');
+        text('dialog-kicker', mode === 'lobby' ? tr('trafficJam','TRAFFIC JAM') : 'TETRIS');
         text('dialog-title', title); text('dialog-text', subtitle); el('menu').innerHTML = '';
         for (n = 0; n < items.length; n += 1) {
             // OEM-style ordinary elements avoid native button repainting in Presto.
@@ -96,7 +97,7 @@
     function resume() { if (game.state === 'paused') { game.pause(); } hideDialog(); last = new Date().getTime(); render(true); }
     function lobby() {
         if (game.state === 'playing') { game.pause(); }
-        dialog('lobby', 'Traffic Jam', 'Select a game.', [
+        dialog('lobby', tr('trafficJam','Traffic Jam'), tr('selectGame','Select a game.'), [
             { label: 'Tetris', action: ready }
         ]);
     }
@@ -104,15 +105,15 @@
         clearHeld();
         if (exitHandler) { exitHandler(); } else { lobby(); }
     }
-    function ready() { dialog('ready', 'Tetris', 'Select Start to begin.', [{ label: 'Start', action: start }, { label: 'Exit', action: exitGame }]); }
+    function ready() { dialog('ready', 'Tetris', tr('startHint','Select Start to begin.'), [{ label: tr('start','Start'), action: start }, { label: tr('exit','Exit'), action: exitGame }]); }
     function pauseMenu() {
-        dialog('pause', 'Paused', 'Continue, restart or exit this game.', [
-            { label: 'Continue', action: resume }, { label: 'Restart', action: confirmRestart }, { label: 'Exit', action: exitGame }
+        dialog('pause', tr('paused','Paused'), tr('pauseHint','Continue, restart or exit this game.'), [
+            { label: tr('continue','Continue'), action: resume }, { label: tr('restart','Restart'), action: confirmRestart }, { label: tr('exit','Exit'), action: exitGame }
         ]);
     }
     function confirmRestart() {
-        dialog('restart', 'Restart game?', 'Your current game will be lost.', [
-            { label: 'Cancel', action: pauseMenu }, { label: 'Restart', action: start }
+        dialog('restart', tr('restartTitle','Restart game?'), tr('restartHint','Your current game will be lost.'), [
+            { label: tr('cancel','Cancel'), action: pauseMenu }, { label: tr('restart','Restart'), action: start }
         ]);
     }
     function pause() {
@@ -183,11 +184,30 @@
         var delta = typeof event.deltaY === 'number' ? event.deltaY : -(event.wheelDelta || 0);
         if (delta) { event.preventDefault(); input(delta > 0 ? 'rotateRight' : 'rotateLeft'); }
     }
+    function overMenu() {
+        dialog('over', tr('gameOver','Game over'), tr('result','Score {score} - {lines} lines cleared.',{score:game.score,lines:game.lines}), [
+            {label:tr('again','Play again'),action:start},{label:tr('exit','Exit'),action:exitGame}
+        ]);
+    }
+    function translate() {
+        var nodes = document.querySelectorAll('[data-i18n]'), i, key, previous = choice;
+        for (i = 0; i < nodes.length; i += 1) {
+            key = nodes[i].getAttribute('data-i18n');
+            if (typeof nodes[i]._english !== 'string') { nodes[i]._english = nodes[i].textContent; }
+            nodes[i].textContent = tr(key,nodes[i]._english);
+        }
+        nodes = document.querySelectorAll('[data-i18n-label]');
+        for (i = 0; i < nodes.length; i += 1) {
+            if (typeof nodes[i]._englishLabel !== 'string') { nodes[i]._englishLabel = nodes[i].getAttribute('aria-label'); }
+            nodes[i].setAttribute('aria-label',tr(nodes[i].getAttribute('data-i18n-label'),nodes[i]._englishLabel));
+        }
+        if (screen === 'ready') { ready(); } else if (screen === 'pause') { pauseMenu(); }
+        else if (screen === 'restart') { confirmRestart(); } else if (screen === 'over') { overMenu(); } else if (screen === 'lobby') { lobby(); }
+        if (menu.length) { choice = Math.min(previous,menu.length - 1); focusMenu(); }
+    }
     function checkOver() {
         if (game.state === 'over' && screen === 'play') {
-            dialog('over', 'Game over', 'Score ' + game.score + ' - ' + game.lines + ' lines cleared.', [
-                { label: 'Play again', action: start }, { label: 'Exit', action: exitGame }
-            ]);
+            overMenu();
         }
     }
     function frame() {
@@ -218,7 +238,7 @@
     window.addEventListener('blur', blur, false); window.addEventListener('resize', fit, false);
     // Pick one wheel event family to avoid duplicate rotations.
     document.addEventListener('onwheel' in document ? 'wheel' : 'mousewheel', wheel, false);
-    window.MzdTetris = { input: input, press: press, release: release, pause: pause, destroy: destroy,
+    window.MzdTetris = { translate:translate, input: input, press: press, release: release, pause: pause, destroy: destroy,
         setExitHandler: function (fn) { exitHandler = typeof fn === 'function' ? fn : null; },
         getState: function () { return { state: game.state, screen: screen, score: game.score, lines: game.lines,
             menuChoice: choice, menuItems: menu.length, menuVisible: screen !== 'play',

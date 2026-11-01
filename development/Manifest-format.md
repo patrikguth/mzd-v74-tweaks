@@ -193,3 +193,11 @@ changing the value and restores focus to the setting button. Selecting a choice
 does not run a worker; the normal Install/Run action applies the draft later.
 Installed settings remain read-only. Boolean controls are unchanged. Choice
 labels continue to use the existing token display; tweaks own their terminology.
+
+Optional GUI `gui_resident` and `gui_service` paths declare shared resident/service capabilities; service requires resident. See [Shared GUI extensions](Gui-extensions.md#optional-resident-and-service-capabilities-provider-020-development) for authoring and old-provider refusal.
+
+Optional GUI field: `gui_translations=assets/i18n.js` declares a scoped JavaScript
+translation dictionary for `gui-extension` consumers. Omit it for unchanged
+behavior. When present the path must be nonempty, under assets, end in `.js`
+and contain no dot/traversal segments. It does not require a resident or service.
+See [Shared GUI extensions](Gui-extensions.md#optional-translations).

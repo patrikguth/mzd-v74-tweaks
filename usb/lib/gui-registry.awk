@@ -12,6 +12,6 @@ function quote(s, out,i,c) {
     return out "\""
 }
 BEGIN {FS="\t";print "window.mzdGuiRegistry={api:1,modules:["}
-NF!=4 {bad=1;next}
-{if(n++)printf ",\n";printf "{id:%s,menuPath:%s,label:%s,entrypoint:%s}",quote($1),quote($2),quote($3),quote($4)}
+NF!=4 && NF!=6 && NF!=7 {bad=1;next}
+{if(n++)printf ",\n";printf "{id:%s,menuPath:%s,label:%s,entrypoint:%s",quote($1),quote($2),quote($3),quote($4);if(NF>=6){if($5!="-")printf ",resident:%s",quote($5);if($6!="-")printf ",service:%s",quote($6)};if(NF==7 && $7!="-")printf ",translations:%s",quote($7);printf "}"}
 END {print "\n]};";if(bad || n>100)exit 1}

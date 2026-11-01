@@ -13,5 +13,11 @@
     });
     game.setExitHandler(function () { sdk.close(); });
     sdk.onDispose(function () { game.destroy(); });
+    if (sdk.loadLanguage) { sdk.loadLanguage(function (language, direction) {
+        document.documentElement.lang = language.replace('_','-');
+        // Keep the spatial playfield/controller layout; mirror translated prose only.
+        document.getElementById('dialog-text').dir = direction;
+        game.translate();
+    }); }
     sdk.ready();
 }());

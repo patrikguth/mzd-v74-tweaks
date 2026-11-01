@@ -503,6 +503,8 @@ const guiConf=fs.readFileSync(path.join(ROOT,'../development/examples/gui-extens
 assert.equal(parseConf('gui-example',guiConf).gui_menu_path,'');
 for(const bad of [guiConf.replace('gui_api=1','gui_api=2'),guiConf.replace('gui_menu_path=','gui_menu_path=Tools//Examples'),guiConf.replace('assets/view.html','assets/../view.html'),guiConf.replace('reset_entrypoint=reset.sh\n','')]) assert.throws(()=>parseConf('gui-example',bad));
 assert.throws(()=>parseConf('games',guiConf.replace('id=gui-example','id=games')));
+assert.equal(parseConf('gui-example',guiConf+'gui_resident=assets/resident.js\ngui_service=assets/service/entry.lua\n').gui_service,'assets/service/entry.lua');
+for(const extra of ['gui_resident=\n','gui_resident=assets/resident.js\ngui_service=\n','gui_service=assets/service.lua\n','gui_resident=assets/../resident.js\n','gui_resident=assets/resident.lua\n','gui_resident=assets/resident.js\ngui_service=assets/service.js\n'])assert.throws(()=>parseConf('gui-example',guiConf+extra));
 console.log('GUI_MANIFEST_UI_PASSED: neutral extension, API, parent, path, reset and reserved ID checks.');
 
 const options64=Array.from({length:64},(_,i)=>'opt'+String(i).padStart(2,'0'));
