@@ -12,7 +12,7 @@ mzd_manifest_load() {
     LC_ALL=C awk '{sub(/\r$/, ""); if ($0 ~ /[[:cntrl:]]/) bad=1} END {exit bad}' "$mzd_manifest_file" || {
         mzd_manifest_error 'Control characters are not allowed.'; return 1;
     }
-    COMPONENTS=; SHIM_SERVICE=; SHIM_ASSET=; SHIM_PATH=; SHIM_EXTRA_TARGETS=; SHIM_CHECKS=
+    COMPONENTS=; PAYLOAD_DIR=; SHIM_SERVICE=; SHIM_ASSET=; SHIM_PATH=; SHIM_EXTRA_TARGETS=; SHIM_CHECKS=
     GUI_API=; GUI_MENU_PATH=; GUI_LABEL=; GUI_ENTRYPOINT=
     SETTINGS=; MZD_MANIFEST_FILE=$mzd_manifest_file; mzd_manifest_settings=0
     CONTRACT_VERSION=; ID=; NAME=; DESCRIPTION=; VERSION=; TYPE=; GROUP=
