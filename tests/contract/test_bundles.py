@@ -88,6 +88,45 @@ with tempfile.TemporaryDirectory(prefix='cmu-bundles-') as temporary:
     assert target.read_text()=='value = 20;\n'
     saved=store/'bundle-example/package'
     assert (saved/'settings.conf').read_text()=='hud_display_language=english\n'
+    # Sequential manifest loading: custom payload_dir followed by default path must reset PAYLOAD_DIR.
+    custom_dir=persist/'custom-shims/custom-bundle'
+    custom_manifest=m.replace('id=bundle-example','id=custom-bundle').replace('version=0.1.0','version=0.2.0')+'payload_dir='+bp(custom_dir)+'\n'
+    custom_table=table.replace(bp(payload_dir),bp(custom_dir))
+    custom_folder=usb/'tweaks/custom-bundle'
+    write(custom_folder/'manifest.conf',custom_manifest)
+    write(custom_folder/'components.tsv',custom_table)
+    seq=('. '+shlex.quote(bp(usb/'lib/manifest.sh'))+'\n'
+        'mzd_manifest_load '+shlex.quote(bp(custom_folder/'manifest.conf'))+' || exit 1\n'
+        '[ "$PAYLOAD_DIR" = '+shlex.quote(bp(custom_dir))+' ] || exit 1\n'
+        'mzd_manifest_load '+shlex.quote(bp(folder/'manifest.conf'))+' || exit 1\n'
+        '[ -z "$PAYLOAD_DIR" ] || exit 1\n')
+    r=subprocess.run([SHELL,'-c',seq],env=env,capture_output=True,text=True,timeout=15)
+    assert r.returncode==0,(r.stdout,r.stderr)
+    shutil.rmtree(custom_folder)
+    checks+=1
+    # Upgrade an installed default-path bundle to a custom payload_dir.
+    custom_payload_dir=persist/'custom-shims/bundle-example'
+    custom_manifest=m.replace('version=0.1.0','version=0.2.0')+'payload_dir='+bp(custom_payload_dir)+'\n'
+    custom_table=table.replace(bp(payload_dir),bp(custom_payload_dir))
+    write(folder/'manifest.conf',custom_manifest)
+    write(folder/'components.tsv',custom_table)
+    call(['action','bundle-example','install','hud_display_language=english'])
+    assert (custom_payload_dir/'libpatch.conf').read_text()=='hud_display_language = english\n'
+    assert (custom_payload_dir/'alpha.so').exists() and (custom_payload_dir/'beta.so').exists()
+    assert not payload_dir.exists()
+    assert 'version=0.2.0' in (saved/'tweaks/bundle-example/manifest.conf').read_text()
+    assert bp(custom_payload_dir) in (saved.parent/'paths.tsv').read_text()
+    assert target.read_text()=='value = 20;\n'
+    # Upgrade back from custom path to default path.
+    write(folder/'manifest.conf',m.replace('version=0.1.0','version=0.3.0'))
+    write(folder/'components.tsv',table)
+    call(['action','bundle-example','install','hud_display_language=english'])
+    assert (payload_dir/'libpatch.conf').read_text()=='hud_display_language = english\n'
+    assert (payload_dir/'alpha.so').exists() and (payload_dir/'beta.so').exists()
+    assert not custom_payload_dir.exists()
+    assert 'version=0.3.0' in (saved/'tweaks/bundle-example/manifest.conf').read_text()
+    assert bp(payload_dir) in (saved.parent/'paths.tsv').read_text()
+    write(folder/'manifest.conf',m)
     # New USB defaults/assets must not affect saved uninstall.
     (folder/'assets/alpha.so').write_bytes(b'new invalid library')
     r=call(['action','bundle-example','status']);assert r.stdout=='installed\n'
@@ -133,4 +172,4 @@ with tempfile.TemporaryDirectory(prefix='cmu-bundles-') as temporary:
     hook('finish',1);assert (payload_dir/'alpha.so').exists()
     for path in [config,second,target]:shutil.copyfile(path.with_name(path.name+'.org'),path)
     hook('finish');assert not payload_dir.exists()
-    print('COMPONENT_BUNDLES_PASSED:',checks,'controller/reset checks; distinct services, mixed commit/rollback, critical payload retention, settings config, block/warning, saved uninstall and owned reset.')
+    print('COMPONENT_BUNDLES_PASSED:',checks,'controller/reset checks; distinct services, mixed commit/rollback, critical payload retention, custom payload upgrades, settings config, block/warning, saved uninstall and owned reset.')
