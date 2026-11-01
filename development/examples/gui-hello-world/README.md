@@ -29,3 +29,26 @@ Do not write the developer hook or registry yourself, include another runtime,
 or enable developer mode. The SDK has no privileged settings-write bridge.
 See [Shared GUI extensions](../../Gui-extensions.md) and
 [acceptance testing](../../Gui-extension-testing.md) for lifecycle and limits.
+
+## Optional translations
+
+This example includes English and German in `assets/i18n.js` and declares:
+
+```ini
+gui_translations=assets/i18n.js
+```
+
+The script registers a version-1 dictionary with `window.MzdGuiI18n.register`.
+Use `MzdGuiModule.t(key, existingEnglishText, values)` for text and optional
+`{name}` placeholders. `MzdGuiModule.loadLanguage(callback)` chooses the Mazda
+language once when opening; the callback runs after dictionary loading or its
+bounded fallback. There is no language polling. Reopen after changing language.
+
+`gui.label` translates the Applications entry without changing its ID/path.
+The input display deliberately retains normalized protocol action/phase names.
+Additional locales are optional: exact locale, base language, English, then
+the existing text are used in that order. Missing keys produce no log messages.
+Remove the manifest field to demonstrate unchanged English behavior; the view
+continues to work. No settings writes or extra backend/service are required.
+An older shared provider must be removed using its saved GUI uninstallers before
+installing consumers that require the new translation capability.

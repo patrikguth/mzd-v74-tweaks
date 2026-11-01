@@ -13,7 +13,7 @@ mzd_manifest_load() {
         mzd_manifest_error 'Control characters are not allowed.'; return 1;
     }
     COMPONENTS=; PAYLOAD_DIR=; SHIM_SERVICE=; SHIM_ASSET=; SHIM_PATH=; SHIM_EXTRA_TARGETS=; SHIM_CHECKS=
-    GUI_API=; GUI_MENU_PATH=; GUI_LABEL=; GUI_ENTRYPOINT=
+    GUI_API=; GUI_MENU_PATH=; GUI_LABEL=; GUI_ENTRYPOINT=; GUI_RESIDENT=; GUI_SERVICE=; GUI_TRANSLATIONS=
     SETTINGS=; MZD_MANIFEST_FILE=$mzd_manifest_file; mzd_manifest_settings=0
     CONTRACT_VERSION=; ID=; NAME=; DESCRIPTION=; VERSION=; TYPE=; GROUP=
     FIRMWARE=; ENTRYPOINT=; ACTIONS=; APP=; ORIGINAL=; LOCK_GROUP=
@@ -27,13 +27,16 @@ mzd_manifest_load() {
         mzd_manifest_key=${mzd_manifest_line%%=*}
         mzd_manifest_value=${mzd_manifest_line#*=}
         case "$mzd_manifest_key" in
-            contract_version|id|name|description|version|type|group|firmware|entrypoint|actions|target|oem_backup_md5|lock_group|status_scope|reboot_required|requires|conflicts|progress|confirmation|refresh_all|reset_entrypoint|settings|setting.*|shim_service|shim_asset|shim_path|shim_extra_targets|shim_checks|components|contributors|payload_dir|gui_api|gui_menu_path|gui_label|gui_entrypoint) ;;
+            contract_version|id|name|description|version|type|group|firmware|entrypoint|actions|target|oem_backup_md5|lock_group|status_scope|reboot_required|requires|conflicts|progress|confirmation|refresh_all|reset_entrypoint|settings|setting.*|shim_service|shim_asset|shim_path|shim_extra_targets|shim_checks|components|contributors|payload_dir|gui_api|gui_menu_path|gui_label|gui_entrypoint|gui_resident|gui_service|gui_translations) ;;
             *) mzd_manifest_error "Unknown field: $mzd_manifest_key"; return 1 ;;
         esac
         case "$mzd_manifest_seen" in *" $mzd_manifest_key "*) mzd_manifest_error "Duplicate field: $mzd_manifest_key"; return 1 ;; esac
         mzd_manifest_seen="$mzd_manifest_seen$mzd_manifest_key "
         case "$mzd_manifest_key" in
             payload_dir) PAYLOAD_DIR=$mzd_manifest_value ;;
+            gui_resident) [ -n "$mzd_manifest_value" ] || { mzd_manifest_error 'GUI resident path cannot be empty.'; return 1; }; GUI_RESIDENT=$mzd_manifest_value ;;
+            gui_translations) [ -n "$mzd_manifest_value" ] || { mzd_manifest_error 'GUI translation path cannot be empty.'; return 1; }; GUI_TRANSLATIONS=$mzd_manifest_value ;;
+            gui_service) [ -n "$mzd_manifest_value" ] || { mzd_manifest_error 'GUI service path cannot be empty.'; return 1; }; GUI_SERVICE=$mzd_manifest_value ;;
             gui_api) GUI_API=$mzd_manifest_value ;;
             gui_menu_path) GUI_MENU_PATH=$mzd_manifest_value ;;
             gui_label) GUI_LABEL=$mzd_manifest_value ;;
@@ -138,8 +141,16 @@ mzd_manifest_load() {
         printf '%s\n' "$GUI_MENU_PATH" | LC_ALL=C awk -F/ 'length($0)>240 || NF>8 {bad=1} $0!="" {for(i=1;i<=NF;i++)if($i=="" || $i=="." || $i==".." || length($i)>80 || $i~/^[[:space:]]|[[:space:]]$/)bad=1} END {exit bad}' || { mzd_manifest_error 'Invalid GUI menu path (maximum eight segments, 240 characters).'; return 1; }
         [ -n "$GUI_LABEL" ] && [ "${#GUI_LABEL}" -le 80 ] || { mzd_manifest_error 'GUI label must contain 1-80 characters.'; return 1; }
         printf '%s\n' "$GUI_ENTRYPOINT" | awk '!/^assets\/[A-Za-z0-9_.\/-]+[.]html$/ || /(^|\/)\.\.?($|\/)/ {exit 1}' || { mzd_manifest_error 'GUI entrypoint must be an assets/*.html path.'; return 1; }
+        for capability in "$GUI_RESIDENT" "$GUI_SERVICE" "$GUI_TRANSLATIONS"; do
+            [ -n "$capability" ] || continue
+            printf '%s\n' "$capability" | awk '!/^assets\/[A-Za-z0-9_.\/-]+[.](js|lua|json)$/ || /(^|\/)\.\.?($|\/)/ {exit 1}' || { mzd_manifest_error 'Invalid GUI capability path.'; return 1; }
+        done
+        case "$GUI_RESIDENT" in ''|*.js) ;; *) mzd_manifest_error 'GUI resident must be JavaScript.'; return 1 ;; esac
+        case "$GUI_SERVICE" in ''|*.lua) ;; *) mzd_manifest_error 'GUI service must be Lua.'; return 1 ;; esac
+        [ -z "$GUI_SERVICE" ] || [ -n "$GUI_RESIDENT" ] || { mzd_manifest_error 'A GUI service requires a resident controller.'; return 1; }
+        case "$GUI_TRANSLATIONS" in ''|*.js) ;; *) mzd_manifest_error 'GUI translations must be JavaScript.'; return 1 ;; esac
         LOCK=/tmp/mzd-gui-extension.lock
-    elif [ -n "$GUI_API$GUI_MENU_PATH$GUI_LABEL$GUI_ENTRYPOINT" ]; then
+    elif [ -n "$GUI_API$GUI_MENU_PATH$GUI_LABEL$GUI_ENTRYPOINT$GUI_RESIDENT$GUI_SERVICE$GUI_TRANSLATIONS" ]; then
         mzd_manifest_error 'GUI metadata requires gui-extension type.'; return 1
     fi
     if [ "$TYPE" != command ] && [ "$TYPE" != gui-extension ]; then

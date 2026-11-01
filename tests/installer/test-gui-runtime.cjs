@@ -43,3 +43,40 @@ h=harness();h.win.framework.instantiateControl=function(){throw Error('factory f
 h=harness();const factory=h.win.framework.instantiateControl;h.win.framework.instantiateControl=function(){const c=factory.apply(this,arguments);delete c.handleControllerEvent;return c;};h.open('games');assert.equal(h.doc.body.children.length,0);assert(h.controls.every(c=>c.destroyed),'invalid returned controls are destroyed');
 h=harness();h.open('games');native=h.controls.at(-1);native.properties.selectCallback(native,native.properties.dataList.items[0].appData,{});h.context('HomeScreen');for(const fn of [...h.timeouts.values()])fn();assert.equal(h.doc.body.children.length,0);assert(!h.frame());
 console.log('GUI_NATIVE_FAILURES_PASSED: factory failure, invalid-control cleanup and no deferred launch after native context change.');
+// Actual runtime -> SDK -> registered dictionary handshake, including file-origin target.
+h=harness();const languageSource=fs.readFileSync('usb/lib/gui-runtime/i18n.js','utf8');
+h.doc.head={appendChild(s){s.parentNode=this;},removeChild(s){s.parentNode=null;}};
+h.win.framework.localize={getCurrentLanguage:()=> 'de_DE'};
+vm.runInNewContext(languageSource,{window:h.win,document:h.doc});
+h.win.MzdGuiI18n.start([{id:'one',translations:'/data/integration/mzd-gui-modules/one/assets/i18n.js'}]);
+h.open('one');f=h.frame();const child=f.contentWindow,childEvents={};
+const parentProxy={postMessage(data){h.event('message',{source:child,data});}};
+child.parent=parentProxy;child.location={hash:'#mzdgui='+f.src.split('#mzdgui=')[1]};
+child.addEventListener=(name,fn)=>childEvents[name]=fn;child.removeEventListener=name=>delete childEvents[name];
+child.postMessage=(data,target)=>{assert.equal(target,'*');if(childEvents.message)childEvents.message({source:parentProxy,data});};
+vm.runInNewContext(sdk,{window:child});let languageReady=0;
+child.MzdGuiModule.loadLanguage((language)=>{languageReady++;assert.equal(language,'de_DE');});
+assert.equal(languageReady,0,'startup waits for the dictionary');
+h.win.MzdGuiI18n.register('one',{version:1,languages:{en_US:{start:'Start'},de_DE:{start:'Starten'}}});
+assert.equal(languageReady,1);assert.equal(child.MzdGuiModule.t('start','Start'),'Starten');assert.equal(child.MzdGuiModule.t('missing','Existing'),'Existing');
+assert.equal([...h.intervals.values()].length,1,'only the existing active-context monitor, no language polling');
+h.win.framework.localize.getCurrentLanguage=()=> 'en_US';assert.equal(child.MzdGuiModule.t('start','Start'),'Starten','open view keeps its initial language');
+child.MzdGuiModule.close();assert.equal(h.doc.body.children.length,0);
+console.log('GUI_LANGUAGE_HANDSHAKE_PASSED: actual runtime/SDK/dictionary, authenticated one-shot startup, German texts, silent fallbacks and no language polling.');
+
+h=harness();h.open('one');f=h.frame();let defaultLanguage;
+f.contentWindow.postMessage=(data,target)=>{defaultLanguage=data.value;assert.equal(target,'*');};
+h.event('message',{source:f.contentWindow,data:{type:'mzd-gui-language-request',token:f.src.split('#mzdgui=')[1]}});
+assert.equal(defaultLanguage.language,'en_US');assert.deepEqual(Object.keys(defaultLanguage.texts),[]);
+console.log('GUI_LANGUAGE_OPTIONAL_PASSED: no translation declaration/helper still answers an SDK request with existing defaults.');
+// Translated example: the application changes labels once, preserving local state.
+let exampleDictionary;vm.runInNewContext(fs.readFileSync('development/examples/gui-hello-world/assets/i18n.js','utf8'),{window:{MzdGuiI18n:{register(id,data){assert.equal(id,'gui-hello-world');exampleDictionary=data;}}}});
+const translatedNodes={};for(const id of ['heading','intro','counter-label','back-hint','input','close','count'])translatedNodes[id]={textContent:''};
+let exampleLocale='en_US',exampleReady;
+const translatedApi={t(key,fallback,values){let text=exampleDictionary.languages[exampleLocale][key]||exampleDictionary.languages.en_US[key]||fallback;return text.replace(/\{(\w+)\}/g,(match,key)=>values&&Object.hasOwn(values,key)?String(values[key]):match);},loadLanguage(fn){exampleReady=fn;},onInput(fn){this.input=fn;},onDispose(fn){this.dispose=fn;},ready(){},close(){}};
+const translatedDocument={documentElement:{},getElementById:id=>translatedNodes[id]};
+vm.runInNewContext(fs.readFileSync('development/examples/gui-hello-world/assets/view.js','utf8'),{document:translatedDocument,MzdGuiModule:translatedApi});
+translatedApi.input('select','press');exampleLocale='de_DE';exampleReady('de_DE','ltr');
+assert.equal(translatedNodes.heading.textContent,'Hallo Welt');assert.equal(translatedNodes['counter-label'].textContent,'Zähler');assert.equal(translatedNodes.close.textContent,'Zurück');assert.equal(translatedNodes.count.textContent,'1');assert.equal(translatedNodes.input.textContent,'Eingabe: select / press');assert.equal(translatedDocument.documentElement.lang,'de-DE');
+assert.equal(translatedApi.input('back','step'),false);translatedApi.dispose();assert.equal(translatedNodes.close.onclick,null);
+console.log('HELLO_WORLD_I18N_PASSED: actual dictionary/view, German labels, retained counter, normalized input diagnostics and default Back/disposal.');

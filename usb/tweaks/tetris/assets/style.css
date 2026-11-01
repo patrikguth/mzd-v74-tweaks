@@ -13,7 +13,7 @@ h1 { margin: 10px 0 27px; font-size: 52px; line-height: 1; letter-spacing: -2px;
 .metric-label { display: block; }strong { display: block; font-family: Tipperary, Arial, sans-serif; font-size: 27px; margin-top: 6px; font-weight: normal; }
 .progress { height: 3px; background: #41434a; margin-top: 22px; width: 200px; }#progress-fill { height: 3px; width: 0; background: #ff2801; }
 .progress-caption { font-size: 11px; color: #c8c8c8; margin-top: 9px; }
-.tag { margin-top: 42px; font-size: 8px; letter-spacing: 1px; color: #929497; white-space: nowrap; }.tag span { width: 5px; height: 5px; background: #ff2801; display: inline-block; margin-right: 7px; }
+.tag { margin-top: 42px; font-size: 8px; letter-spacing: 1px; color: #929497; white-space: nowrap; }.tag .tag-dot { width: 5px; height: 5px; background: #ff2801; display: inline-block; margin-right: 7px; }
 #court { position: absolute; left: 282px; top: 12px; width: 236px; height: 456px; border: 1px solid #54565c; padding: 7px; background: #08090b; }
 #board { display: block; width: 220px; height: 440px; }
 .right-panel { position: absolute; left: 549px; top: 42px; width: 222px; }
@@ -29,3 +29,19 @@ h2 { font-size: 32px; letter-spacing: -1px; margin: 12px 0; }#dialog-text { colo
 #menu .menu-entry { display: block; width: 100%; height: 40px; line-height: 38px; margin-top: 8px; border: 1px solid #54565c; background: transparent; color: #ffffff; font-family: Tipperary, Arial, sans-serif; font-size: 16px; text-align: left; padding: 0 15px; cursor: pointer; }
 #menu .menu-entry.selected { background: #300800 url("/jci/gui/common/controls/List2/images/ListFocus.png") no-repeat center; background-size: 100% 100%; color: #ffffff; border-color: #ff2801; font-weight: normal; }
 #menu .menu-entry.disabled { color: #797b81; background: transparent; cursor: default; }.menu-hint { font-size: 8px; color: #c8c8c8; margin-top: 21px; letter-spacing: .4px; }
+
+/* Do not space connected scripts; retain the spatial game layout in RTL locales. */
+html[lang^="ar"] [data-i18n], html[lang^="he"] [data-i18n], html[lang^="th"] [data-i18n] { letter-spacing: normal; }
+
+@font-face { font-family: MzdJapanese; src: url("/jci/fonts/HeiseiKakuGothW5_213_C.ttf"); }
+@font-face { font-family: MzdChinese; src: url("/jci/fonts/MYingHei_18030-H_C.ttf"); }
+@font-face { font-family: MzdTraditional; src: url("/jci/fonts/MYingHei_B5HK-H_C.ttf"); }
+@font-face { font-family: MzdArabic; src: url("/jci/fonts/AkhbarOTS.ttf"); }
+@font-face { font-family: MzdHebrew; src: url("/jci/fonts/HebrewOTS.ttf"); }
+@font-face { font-family: MzdThai; src: url("/jci/fonts/ThaiAltOTS.ttf"); }
+html[lang^="ja"] body, html[lang^="ja"] #menu .menu-entry, html[lang^="ja"] .key { font-family: MzdJapanese, Tipperary, sans-serif; letter-spacing: normal; }
+html[lang^="zh-CN"] body, html[lang^="zh-CN"] #menu .menu-entry, html[lang^="zh-CN"] .key { font-family: MzdChinese, Tipperary, sans-serif; letter-spacing: normal; }
+html[lang^="zh-TW"] body, html[lang^="zh-TW"] #menu .menu-entry, html[lang^="zh-TW"] .key, html[lang^="cn"] body, html[lang^="cn"] #menu .menu-entry, html[lang^="cn"] .key, html[lang^="mn"] body, html[lang^="mn"] #menu .menu-entry, html[lang^="mn"] .key { font-family: MzdTraditional, Tipperary, sans-serif; letter-spacing: normal; }
+html[lang^="ar"] body, html[lang^="ar"] #menu .menu-entry, html[lang^="ar"] .key { font-family: MzdArabic, Tipperary, sans-serif; letter-spacing: normal; }
+html[lang^="he"] body, html[lang^="he"] #menu .menu-entry, html[lang^="he"] .key { font-family: MzdHebrew, Tipperary, sans-serif; letter-spacing: normal; }
+html[lang^="th"] body, html[lang^="th"] #menu .menu-entry, html[lang^="th"] .key { font-family: MzdThai, Tipperary, sans-serif; letter-spacing: normal; }

@@ -79,7 +79,7 @@ function fixture(options = {}) {
             getElementsByTagName(){return this.children;}, getContext(){return canvas;},
             set innerHTML(value){this.children=[];}, get innerHTML(){return '';}};
     }
-    const document = {onwheel: null, hidden: false, documentElement:{clientWidth:800,clientHeight:480},
+    const document = {querySelectorAll(){return [];},onwheel: null, hidden: false, documentElement:{clientWidth:800,clientHeight:480},
         getElementById(id){if(!ids.has(id))return null;const node=elements[id]||(elements[id]=element());if(id==='board'){node.width=Number(boardSize[1]);node.height=Number(boardSize[2]);}return node;}, createElement(tag){const e=element();e.tagName=tag.toUpperCase();return e;},
         addEventListener(name, fn){listeners[name] = fn;}, removeEventListener(name){delete listeners[name];}};
     const window = {innerWidth:800,innerHeight:480, setInterval(fn){frame=fn;return 1;}, clearInterval(){cancelled=true;},

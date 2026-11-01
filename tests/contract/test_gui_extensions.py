@@ -18,7 +18,7 @@ def real_command(name):
  command=result.stdout.strip()
  assert command.startswith('/'), 'Expected an absolute command path: '+command
  return shlex.quote(command)
-copy_command=real_command('cp');remove_command=real_command('rm')
+copy_command=real_command('cp');remove_command=real_command('rm');awk_command=real_command('awk')
 checks=0
 with tempfile.TemporaryDirectory(prefix='cmu-gui-') as folder:
  b=Path(folder);usb=b/'usb';data=b/'data';base=data/'integration';persist=b/'persist';provider=persist/'mzd-tweaks/gui-provider';bins=b/'bin';version=b/'version';mounts=b/'mounts';events=b/'events'
@@ -30,11 +30,19 @@ with tempfile.TemporaryDirectory(prefix='cmu-gui-') as folder:
   if id_=='second-example':s=s.replace('gui_label=Example GUI page','gui_label=Second "page" </script>')
   write(p,s)
  shutil.copytree(ROOT/'usb/tweaks/tetris',usb/'tweaks/tetris')
+ shutil.copytree(ROOT/'usb/tweaks/wallpaper-manager',usb/'tweaks/wallpaper-manager')
  shutil.copytree(ROOT/'development/examples/gui-hello-world',usb/'tweaks/gui-hello-world')
  shutil.copytree(ROOT/'usb/tweaks/restore-originals',usb/'tweaks/restore-originals')
+ if '--services-only' in sys.argv or '--wallpaper-only' in sys.argv:
+  for id_ in ['gui-example','second-example']:
+   dest=usb/'tweaks'/id_
+   with (dest/'manifest.conf').open('a',encoding='utf-8') as f:f.write('\ngui_resident=assets/resident.js\ngui_service=assets/service.lua\n')
+   write(dest/'assets/resident.js','window.MzdGuiResidents.register("'+id_+'",function () {});\n')
+   write(dest/'assets/service.lua','return function() return {request=function()return {}end}end\n')
+  write(b/'startup','#!/bin/sh\n# unrelated SSH hook\necho original\n')
  p=usb/'tweaks/restore-originals/manifest.conf';write(p,p.read_text().replace('target=/jci','target='+bp(data)))
- write(version,'JCI_SW_VER="MAZ_CMU-150_74.00.324"\n');write(mounts,'mock '+bp(usb)+' vfat rw 0 0\n/dev/mmcblk0p1 '+bp(data)+' relfs rw 0 0\nmock '+bp(persist)+' relfs rw 0 0\n')
- replacements={'/tmp/mnt/data_persist':bp(persist),'/tmp/mnt/data':bp(data),'/tmp/mzd-packages.lock':bp(b/'packages.lock'),'/tmp/mzd-gui-extension.lock':bp(b/'gui.lock'),'/tmp/mzd-restore-originals.lock':bp(b/'restore.lock'),'/jci/version.ini':bp(version),'/proc/mounts':bp(mounts)}
+ write(version,'JCI_SW_VER="MAZ_CMU-150_74.00.324"\n');write(mounts,'mock '+bp(usb)+' vfat rw 0 0\n/dev/mmcblk0p1 '+bp(data)+' relfs rw 0 0\nmock '+bp(persist)+' relfs rw 0 0\nmock '+bp(b)+' relfs rw 0 0\n')
+ replacements={'MZD_GUI_STARTUP_MOUNT=/':'MZD_GUI_STARTUP_MOUNT='+bp(b),'/jci/scripts/stage_wifi.sh':bp(b/'startup'),'/tmp/mzd-stage_wifi-tweak.lock':bp(b/'startup.lock'),'/tmp/mnt/data_persist':bp(persist),'/tmp/mnt/data':bp(data),'/tmp/mzd-packages.lock':bp(b/'packages.lock'),'/tmp/mzd-gui-extension.lock':bp(b/'gui.lock'),'/tmp/mzd-restore-originals.lock':bp(b/'restore.lock'),'/jci/version.ini':bp(version),'/proc/mounts':bp(mounts)}
  for p in usb.rglob('*.sh'):
   s=p.read_text()
   for x,y in replacements.items():s=s.replace(x,y)
@@ -51,9 +59,19 @@ if [ "$destination" = '''+shlex.quote(bp(base/'mzd-gui-runtime'))+''' ] && [ -f 
 exec '''+copy_command+''' "$@"
 ''')
  write(bins/'rm','#!/bin/sh\nfor arg do destination=$arg; done\nif [ "$destination" = '+shlex.quote(bp(base/'mzd-gui-runtime'))+' ] && [ -f '+shlex.quote(bp(b/'fail-remove'))+' ]; then '+remove_command+' -f '+shlex.quote(bp(b/'fail-remove'))+'; exit 1; fi\nexec '+remove_command+' "$@"\n')
+ if '--services-only' in sys.argv or '--wallpaper-only' in sys.argv:
+  # CMU BusyBox does not decode the literal backslash-t passed through -F.
+  # Reject that nonportable form even when the host awk would accept it.
+  write(bins/'awk','#!/bin/sh\nif [ \"$1\" = -F ] && [ \"$2\" = '+shlex.quote(r'\t')+' ]; then printf \"Unsupported CMU awk field separator.\\n\" >&2; exit 1; fi\nexec '+awk_command+' \"$@\"\n')
+  for name in ['lua','setsid']:write(bins/name,'#!/bin/sh\nexit 0\n')
+  # Daemon transport has a separate original-ARM integration test. Here observe
+  # worker ordering without creating a host listener or starting a CMU service.
+  with (usb/'lib/gui-services.sh').open('a',encoding='utf-8') as f:
+   f.write('\nmzd_gui_services_stop() { printf "stop\\n" >> '+shlex.quote(bp(events))+'; }\n')
+   f.write('mzd_gui_services_start() { printf "start\\n" >> '+shlex.quote(bp(events))+'; }\n')
  def call(id_,action,code=0,out=None):
   global checks
-  r=subprocess.run([SHELL,bp(usb/'installer.sh'),'action',id_,action],capture_output=True,text=True,timeout=60)
+  r=subprocess.run([SHELL,bp(usb/'installer.sh'),'action',id_,action],capture_output=True,text=True,timeout=180 if os.name=='nt' else 60)
   assert r.returncode==code,(id_,action,code,r.returncode,r.stdout,r.stderr)
   if out is not None:assert r.stdout==out+'\n',(r.stdout,r.stderr)
   checks+=1;return r
@@ -67,6 +85,47 @@ exec '''+copy_command+''' "$@"
   checks+=1
  hook=base/'developer_mode_GuiConfig.js';runtime=base/'mzd-gui-runtime';registry=base/'mzd-gui-registry.js';modules=base/'mzd-gui-modules'
  def absent():assert not hook.exists() and not runtime.exists() and not registry.exists() and not provider.exists() and not modules.exists()
+ if '--services-only' in sys.argv:
+  startup=b/'startup';original=startup.read_bytes()
+  call('tetris','install')
+  call('gui-example','install');deep('gui-example','installed')
+  assert b'resident:' in registry.read_bytes() and 'gui-example' in (base/'mzd-gui-services.tsv').read_text()
+  assert startup.read_text().count('# MZD shared GUI services')==1
+  user_data=persist/'mzd-tweaks/gui-data/gui-example'
+  owner_bytes=(user_data/'owner').read_bytes();(user_data/'owner').write_bytes(owner_bytes.rstrip(b'\n'));deep('gui-example','broken');(user_data/'owner').write_bytes(owner_bytes);deep('gui-example','installed')
+  write(user_data/'user-file','keep user data\n')
+  call('second-example','install');assert startup.read_text().count('# MZD shared GUI services')==1
+  call('gui-example','uninstall');assert hook.exists() and startup.read_bytes()!=original and (user_data/'user-file').exists()
+  call('second-example','uninstall');assert hook.exists() and startup.read_bytes()==original and not (base/'mzd-gui-services.tsv').read_text()
+  call('tetris','uninstall');absent();assert not (base/'mzd-gui-services.tsv').exists()
+  # Old immutable providers and saved uninstallers must be removed explicitly.
+  call('tetris','install')
+  for q in [provider/'package/lib/gui-runtime/api.conf',runtime/'api.conf',persist/'mzd-tweaks/installed/tetris/package/lib/gui-runtime/api.conf']:
+   write(q,'api=1\nversion=0.1.0\n')
+  for folder,inventory in [(provider,'provider.files'),(persist/'mzd-tweaks/installed/tetris','package.files')]:
+   subprocess.run([SHELL,'-c','. '+shlex.quote(bp(usb/'lib/packages.sh'))+'; mzd_package_inventory '+shlex.quote(bp(folder))+' > '+shlex.quote(bp(folder/inventory))],check=True)
+  failed=call('gui-example','install',1)
+  diagnostics=failed.stdout+failed.stderr+'\n'.join(p.read_text() for p in (usb/'reports/gui-example').glob('install-*/run.log'))
+  assert 'predates resident services' in diagnostics,diagnostics
+  assert startup.read_bytes()==original and not (modules/'gui-example').exists() and not (persist/'mzd-tweaks/installed/gui-example').exists()
+  call('tetris','uninstall');absent()
+  print('GUI_SERVICES_PACKAGES_PASSED:',checks,'real entrypoint checks; shared startup, both service consumers, last cleanup, retained user data and old-provider refusal.')
+  raise SystemExit(0)
+ if '--wallpaper-only' in sys.argv:
+  startup=b/'startup';original=startup.read_bytes()
+  assert not list((usb/'tweaks/wallpaper-manager').rglob('*.png'))
+  deep('wallpaper-manager','uninstalled')
+  call('tetris','install');call('wallpaper-manager','install');deep('wallpaper-manager','installed')
+  assert 'resident:' in registry.read_text() and 'translations:' in registry.read_text()
+  user_data=persist/'mzd-tweaks/gui-data/wallpaper-manager'
+  write(user_data/'test-image.png','synthetic user data\n')
+  call('wallpaper-manager','uninstall');assert hook.exists() and (user_data/'test-image.png').exists()
+  assert startup.read_bytes()==original
+  call('tetris','uninstall');absent()
+  call('wallpaper-manager','install');call('tetris','install');call('tetris','uninstall');assert hook.exists()
+  call('wallpaper-manager','uninstall');absent();assert startup.read_bytes()==original
+  print('WALLPAPER_PACKAGE_PASSED:',checks,'real actions; image-free public payload, mixed consumers, both removal orders and retained user data.')
+  raise SystemExit(0)
  if '--tetris-only' in sys.argv:
   deep('tetris','uninstalled');call('tetris','install');deep('tetris','installed');original_hook=hook.read_bytes()
   assert 'menuPath:"Traffic Jam"' in registry.read_text()

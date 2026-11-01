@@ -73,6 +73,21 @@ with tempfile.TemporaryDirectory(prefix='cmu-manifest-') as temporary:
               ('reserved GUI ID',gui.replace('id=gui-example','id=games'),False),
               ('GUI missing reset',gui.replace('reset_entrypoint=reset.sh\n',''),False),
               ('GUI metadata on patch',original+'gui_api=1\n',False)]
+    cases += [('translations',gui+'gui_translations=assets/i18n.js\n',True),
+              ('empty translations',gui+'gui_translations=\n',False),
+              ('translation traversal',gui+'gui_translations=assets/../i18n.js\n',False),
+              ('translation wrong type',gui+'gui_translations=assets/i18n.lua\n',False),
+              ('empty translations on patch',original+'gui_translations=\n',False),
+              ('translations on patch',original+'gui_translations=assets/i18n.js\n',False),
+              ('empty resident capability',gui+'gui_resident=\n',False),
+              ('empty service capability',gui+'gui_resident=assets/resident.js\ngui_service=\n',False),
+              ('resident capability',gui+'gui_resident=assets/resident.js\n',True),
+              ('resident service',gui+'gui_resident=assets/resident.js\ngui_service=assets/service/entry.lua\n',True),
+              ('service requires resident',gui+'gui_service=assets/service.lua\n',False),
+              ('resident traversal',gui+'gui_resident=assets/../resident.js\n',False),
+              ('resident wrong extension',gui+'gui_resident=assets/resident.lua\n',False),
+              ('service wrong extension',gui+'gui_resident=assets/resident.js\ngui_service=assets/service.js\n',False),
+              ('capability on patch',original+'gui_resident=assets/resident.js\n',False)]
     for label, data, valid in cases:
         file.write_bytes(data.encode('utf-8'))
         try:
