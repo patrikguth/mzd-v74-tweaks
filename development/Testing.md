@@ -3,6 +3,27 @@
 Run commands from the repository root. See [Contributing](CONTRIBUTING.md) for
 required coverage. Checks use synthetic fixtures unless explicitly stated.
 
+## Running checks in containers
+
+On macOS, Windows or any machine whose shell and tools differ from the CI
+runner, run the checks in Docker. Only Docker is needed on the host
+(Docker Desktop, OrbStack or Colima).
+
+```sh
+sh tools/test-in-container.sh                 # every Validate tweaks step
+sh tools/test-in-container.sh workers         # BusyBox worker suite
+sh tools/test-in-container.sh run python tests/contract/test_packages.py
+sh tools/test-in-container.sh busybox sh -c 'busybox | head -n 1'
+```
+
+[tools/container/Dockerfile](../tools/container/Dockerfile) builds two images:
+`ubuntu` for the runner steps and `workers` for the BusyBox worker container.
+[run-ci-steps.py](../tools/container/run-ci-steps.py) reads the steps from the
+workflow, so new CI steps run locally without editing these tools. Containers
+have no network and mount the repository read-only. AI agents are directed here
+by [AGENTS.md](../AGENTS.md) and the `run-checks` skill (`.github/skills/` for
+Copilot, `.agent/skills/` for Antigravity; keep the two copies identical).
+
 ```sh
 python tools/validate.py
 python tests/contract/test_manifest.py
