@@ -175,7 +175,6 @@ esac
         return r
 
     # Status before installation
-    call(['action', 'android-auto', 'status'], output='uninstalled\n') if hasattr(call, 'dummy') else None
     r = call(['statuses', 'android-auto'])
     assert 'android-auto\tuninstalled\t\n' in r.stdout
 
@@ -359,5 +358,17 @@ mzd_bundle_reset_main "$1"
     assert '<density>103</density>' in std_103 and '<par>10670</par>' in std_103
     call(['action', 'android-auto', 'uninstall'])
     assert xml_std.read_text() == orig_std
+
+    # Default DPI 141 keeps the stock density line as context (no reversed hunk)
+    call(['action', 'android-auto', 'install', 'resolution_dpi=141', 'resolution_par=10670'])
+    for path in [xml_std, xml_ucp]:
+        text = path.read_text()
+        assert text.count('<density>141</density>') == 1, text
+        assert '<real_density>141</real_density>' in text and '<par>10670</par>' in text
+    r = call(['statuses', 'android-auto'])
+    assert 'android-auto\tinstalled\t\n' in r.stdout
+    call(['action', 'android-auto', 'uninstall'])
+    assert xml_std.read_text() == orig_std and xml_ucp.read_text() == orig_ucp
+    assert config.read_text() == stock and second.read_text() == stock and not payload_dir.exists()
 
     print('ANDROID_AUTO_PASSED:', checks, 'real package checks; shims, XML patch hook, user settings defaults and asset overrides, saved uninstall.')
