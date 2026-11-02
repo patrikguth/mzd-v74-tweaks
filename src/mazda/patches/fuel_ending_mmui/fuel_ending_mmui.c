@@ -29,16 +29,19 @@
  * back to ourselves. Fallbacks and failures:
  *   - guards: if an original is not found, it is treated as returning 0;
  *     the redirect and the code remap are only active when BOTH original
- *     guards were found, otherwise each guard returns its original result;
+ *     guards AND the EEM original were found; otherwise each known guard
+ *     returns its original result;
  *   - EEM: if the original is not in libjcieem_client.so's own table,
  *     dlsym(RTLD_NEXT, ...) is tried as a last resort (a result pointing back
  *     into this shim is rejected); if it is still not found, the call is not
  *     forwarded: it is logged and returns -1;
  *   - every resolved pointer is compared with our own functions, so the shim
  *     never calls itself.
- * Nothing runs at load time; the lookup happens once, on the first call.
+ * Nothing runs at load time. Missing originals are retried on later calls.
+ * Successful lookups are cached. Loader operations and original calls never
+ * run while the cache mutex is held (including during dlopen constructors).
  * jciMMUI is reset_board="yes".
- * Log: /tmp/fuel-ending-mmui.log (tmpfs, capped at 32 KB): one init line,
+ * Log: /tmp/fuel-ending-mmui.log (tmpfs, capped at 32 KB): one resolution line per change,
  * then only the guard calls and the 11 -> 12 remap, i.e. a few lines per
  * ignition off; other EEM codes are not logged.
  * Links only against libc/libdl/libpthread (no librt: old glibc).
@@ -72,11 +75,19 @@ enum { kScreenEndingIstop = 11, kScreenEndingFuel = 12 };
 typedef int (*guard_fn)(void);
 typedef int (*eem_fn)(void *, int, void *, void *);
 
-static pthread_once_t g_once = PTHREAD_ONCE_INIT;
-static guard_fn g_eff;   /* original guards (in libjciuiaecoenergy.so) */
-static guard_fn g_fuel;
-static eem_fn   g_eem;   /* original (in libjcieem_client.so) */
-static int      g_active; /* both guards found -> redirect + remap */
+struct originals {
+    guard_fn eff;
+    guard_fn fuel;
+    eem_fn eem;
+};
+static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
+static struct originals g_originals;
+static int g_reported;
+
+static int active(const struct originals *o)
+{
+    return o->eff != NULL && o->fuel != NULL && o->eem != NULL;
+}
 
 static void lg(const char *fmt, ...)
 {
@@ -214,59 +225,85 @@ EXPORT int UIA_ECOENERGY_isPrevEngRunNEndingSetOnNEndingIsEffectiveness(void);
 EXPORT int UIA_ECOENERGY_isPrevEngRunNEndingSetOnNEndingIsFuelConsumption(void);
 EXPORT int EEM_SetEEMUpdateScreenEnable(void *h, int screen, void *cb, void *arg);
 
-static void init(void)
+/* Do not hold g_lock across dl_iterate_phdr/dlsym: a dlopen constructor
+ * could enter the shim while another thread is resolving through the loader.
+ * Publish only missing pointers, then return a consistent per-call snapshot.
+ * Calls into the originals also happen after releasing the mutex. */
+static struct originals resolve_originals(void)
 {
-    g_eff = (guard_fn)find_sym(kEcoLib, kEffName);
-    g_fuel = (guard_fn)find_sym(kEcoLib, kFuelName);
-    g_eem = (eem_fn)find_sym(kEemLib, kEemName);
-    if (g_eem == NULL) {
+    struct originals found, result;
+    int changed;
+    pthread_mutex_lock(&g_lock);
+    found = g_originals;
+    pthread_mutex_unlock(&g_lock);
+
+    if (found.eff == NULL) found.eff = (guard_fn)find_sym(kEcoLib, kEffName);
+    if (found.fuel == NULL) found.fuel = (guard_fn)find_sym(kEcoLib, kFuelName);
+    if (found.eem == NULL) found.eem = (eem_fn)find_sym(kEemLib, kEemName);
+    if (found.eem == NULL) {
         void *p = dlsym(RTLD_NEXT, kEemName);
         if (p != NULL && p != (void *)&EEM_SetEEMUpdateScreenEnable) {
-            g_eem = (eem_fn)p;
+            found.eem = (eem_fn)p;
         }
     }
-    /* never call ourselves */
-    if ((void *)g_eff == (void *)&UIA_ECOENERGY_isPrevEngRunNEndingSetOnNEndingIsEffectiveness) g_eff = NULL;
-    if ((void *)g_fuel == (void *)&UIA_ECOENERGY_isPrevEngRunNEndingSetOnNEndingIsFuelConsumption) g_fuel = NULL;
-    if ((void *)g_eem == (void *)&EEM_SetEEMUpdateScreenEnable) g_eem = NULL;
-    g_active = (g_eff != NULL && g_fuel != NULL);
-    lg("init eff=%p fuel=%p eem=%p -> %s", (void *)g_eff, (void *)g_fuel,
-       (void *)g_eem, g_active ? "ACTIVE" : "passthrough");
+    /* Never call ourselves. */
+    if ((void *)found.eff == (void *)&UIA_ECOENERGY_isPrevEngRunNEndingSetOnNEndingIsEffectiveness) found.eff = NULL;
+    if ((void *)found.fuel == (void *)&UIA_ECOENERGY_isPrevEngRunNEndingSetOnNEndingIsFuelConsumption) found.fuel = NULL;
+    if ((void *)found.eem == (void *)&EEM_SetEEMUpdateScreenEnable) found.eem = NULL;
+
+    pthread_mutex_lock(&g_lock);
+    changed = !g_reported ||
+        (g_originals.eff == NULL && found.eff != NULL) ||
+        (g_originals.fuel == NULL && found.fuel != NULL) ||
+        (g_originals.eem == NULL && found.eem != NULL);
+    if (g_originals.eff == NULL) g_originals.eff = found.eff;
+    if (g_originals.fuel == NULL) g_originals.fuel = found.fuel;
+    if (g_originals.eem == NULL) g_originals.eem = found.eem;
+    result = g_originals;
+    g_reported = 1;
+    pthread_mutex_unlock(&g_lock);
+
+    if (changed) {
+        lg("resolve eff=%p fuel=%p eem=%p -> %s", (void *)result.eff,
+           (void *)result.fuel, (void *)result.eem,
+           active(&result) ? "ACTIVE" : "passthrough");
+    }
+    return result;
 }
 
 EXPORT int UIA_ECOENERGY_isPrevEngRunNEndingSetOnNEndingIsEffectiveness(void)
 {
-    pthread_once(&g_once, init);
-    if (!g_active) {
-        return g_eff ? g_eff() : 0;
+    struct originals o = resolve_originals();
+    if (!active(&o)) {
+        return o.eff ? o.eff() : 0;
     }
-    int orig = g_eff();
+    int orig = o.eff();
     lg("guard Effectiveness: original=%d -> 0", orig);
     return 0;
 }
 
 EXPORT int UIA_ECOENERGY_isPrevEngRunNEndingSetOnNEndingIsFuelConsumption(void)
 {
-    pthread_once(&g_once, init);
-    if (!g_active) {
-        return g_fuel ? g_fuel() : 0;
+    struct originals o = resolve_originals();
+    if (!active(&o)) {
+        return o.fuel ? o.fuel() : 0;
     }
-    int f = g_fuel();
-    int e = g_eff();
+    int f = o.fuel();
+    int e = o.eff();
     lg("guard FuelConsumption: original fuel=%d eff=%d -> %d", f, e, (f || e) ? 1 : 0);
     return (f || e) ? 1 : 0;
 }
 
 EXPORT int EEM_SetEEMUpdateScreenEnable(void *h, int screen, void *cb, void *arg)
 {
-    pthread_once(&g_once, init);
-    if (g_eem == NULL) {
+    struct originals o = resolve_originals();
+    if (o.eem == NULL) {
         lg("EEM screen=%d: original NOT FOUND", screen);
         return -1;
     }
-    if (g_active && screen == kScreenEndingIstop) {
+    if (active(&o) && screen == kScreenEndingIstop) {
         lg("EEM screen %d -> %d", screen, kScreenEndingFuel);
         screen = kScreenEndingFuel;
     }
-    return g_eem(h, screen, cb, arg);
+    return o.eem(h, screen, cb, arg);
 }

@@ -22,9 +22,14 @@ standalone `fogyend_mmui.so`.
 
 Shim behaviour, fallbacks and logging are described at the top of
 `src/mazda/patches/fuel_ending_mmui/fuel_ending_mmui.c`. Nothing runs at load
-time; the original functions are looked up once in the defining libraries' own
-dynamic symbol tables. It links only against libc/libdl/libpthread (the CMU
-glibc has `clock_gettime` in librt). Log: `/tmp/fuel-ending-mmui.log`.
+time; original functions are looked up in the defining libraries' own
+dynamic symbol tables. Successful lookups are cached; missing functions are
+retried on later calls. A mutex protects snapshots and publication, but is never
+held across loader operations or original function calls. Redirection requires
+both original guards and the original EEM function. If EEM is missing, known
+guards retain stock results and EEM calls return -1 until it becomes available.
+It links only against libc/libdl/libpthread (the CMU glibc has `clock_gettime`
+in librt). Log: `/tmp/fuel-ending-mmui.log`.
 
 ## Building
 
@@ -34,10 +39,11 @@ sh build/build.sh
 ```
 
 `build/build.sh` compiles every `src/mazda/patches/<name>/` and writes it to each
-existing `usb/tweaks/*/assets/<name>.so`. The build is reproducible: the shipped
-asset (MD5 `554ca237fcf6f11dbdd8b34d142ca544`) is byte-identical to the
-main-branch `jci-shims/fuel_ending_mmui.so`. The Build shims workflow checks on
-pull requests that the shipped asset matches its source and runs the shim test;
+existing `usb/tweaks/*/assets/<name>.so`. The build is reproducible. The original
+pre-hardening asset was byte-identical
+to the main-branch shim; the shipped asset now includes retryable, thread-safe
+resolution and complete-original activation checks. The Build shims workflow
+checks on pull requests that the shipped asset matches its source and runs the shim test;
 on `development` pushes it opens a PR with rebuilt assets when they differ.
 
 ## Tests
@@ -49,6 +55,8 @@ on `development` pushes it opens a PR with rebuilt assets when they differ.
 - `tests/tweaks/fuel-consumption-ending/shim/run.sh`: the built shim under
   qemu-arm against stand-in libraries (`eco.c`, `stubs.c`) for stock, i-stop,
   no ending screen, HEV, missing guards, EEM SONAME and unrelated processes.
+  Startup probes cover EEM before Ecoenergy, missing and later-loaded EEM,
+  and concurrent first calls. Startup probes have a 15-second process limit.
 
 The JS change was tested in mzd-emu and the shim with the real
 `libjciuiaecoenergy.so` under qemu during the original development; neither
@@ -57,3 +65,10 @@ Mazda file is in the repository.
 Ported from the `fuel-consumption.sh` Fuel ending screen and Fuel ending data
 tweaks in [piotrmocko/mzd-v74-tweaks](https://github.com/piotrmocko/mzd-v74-tweaks).
 The OEM file plus the diff is byte-identical to `jci-mods/ecoenergyApp.js` there.
+
+## Startup hardening validation scope
+
+The original standalone shim has vehicle evidence as described above. The
+retryable resolution changes are verified with synthetic ARM libraries under
+QEMU; they have not been installed on a vehicle. A missing original EEM function
+cannot be forwarded: returning -1 is explicit failure, not full stock operation.

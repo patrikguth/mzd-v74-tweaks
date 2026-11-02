@@ -100,6 +100,37 @@ rm -f "$LOG"
 OUT=$(QEMU_LD_PREFIX="$SYSROOT" QEMU_SET_ENV="LD_PRELOAD=$SHIM" qemu-arm "$W/sm_svclauncher" /nonexistent.so 2>&1)
 check I 1 "dlopen: "; CHECKS=$((CHECKS + 1)); [ -f "$LOG" ] && { FAILS=$((FAILS + 1)); echo "    FAIL (I): shim wrote a log"; }
 
+# Exercise the shipped ARM asset with additional startup orders.
+"$CC" $A -o "$W/startup" "$ROOT/tests/tweaks/fuel-consumption-ending/shim/startup.c" -ldl -lpthread
+mkdir -p "$W/missing"
+"$CC" $A -shared -fPIC -DEEM_MISSING -o "$W/missing/libjcieem_client.so" "$ROOT/tests/tweaks/fuel-consumption-ending/shim/stubs.c"
+startup() {
+  rm -f "$LOG"
+  _env="ECO_LIB=$W/uia/libjciuiaecoenergy.so,EEM_LIB=$2/libjcieem_client.so,LATE_EEM_LIB=$W/lib/libjcieem_client.so,LD_LIBRARY_PATH=$2,FT=3,ES=1,LD_PRELOAD=$SHIM"
+  OUT=$(QEMU_LD_PREFIX="$SYSROOT" QEMU_SET_ENV="$_env" timeout 15 qemu-arm "$W/startup" "$1" 2>&1)
+  RC=$?
+  [ ! -f "$LOG" ] || OUT="$OUT
+$(sed 's/^/log: /' "$LOG")"
+}
+echo "### J) EEM called before Ecoenergy loads -> later guards resolve and activate"
+startup early "$W/lib"; exit_ok J
+check J 1 "early eem ret=7"; check J 1 "ending=FUEL"; check J 0 "ending=none"
+check J 1 "passthrough"; check J 1 "ACTIVE"; eem J 12
+
+echo "### K) missing original EEM -> guards stay stock, calls report failure"
+startup missing "$W/missing"; exit_ok K
+check K 1 "ending=ISTOP"; check K 0 "ending=FUEL"; check K 0 "ACTIVE"
+check K 1 "original NOT FOUND"; check K 1 "ret=-1"; check K 0 "EEM screen 11 -> 12"
+
+echo "### L) missing original EEM becomes available -> redirect activates"
+startup late "$W/missing"; exit_ok L
+check L 1 "ending=ISTOP"; check L 1 "late EEM loaded"; check L 1 "ending=FUEL"
+check L 1 "passthrough"; check L 1 "ACTIVE"; check L 1 "eem screen=12 "
+
+echo "### M) concurrent first use -> consistent originals, no recursion/deadlock"
+startup threads "$W/lib"; exit_ok M
+check M 1 "concurrent first use passed"; check M 0 "original NOT FOUND"
+
 echo
 echo "$CHECKS checks, $FAILS failed"
 [ "$FAILS" = "0" ]

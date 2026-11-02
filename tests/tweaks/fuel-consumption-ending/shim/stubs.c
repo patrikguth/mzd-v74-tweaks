@@ -9,7 +9,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#if defined(EEM)
+#if defined(EEM_MISSING)
+/* A present client library without the required original EEM export. */
+int eem_placeholder(void) { return 0; }
+#elif defined(EEM)
 int EEM_SetEEMUpdateScreenEnable(void *h, int screen, void *cb, void *arg)
 {
     printf("eem screen=%d h=%p cb_set=%d arg=%p\n", screen, h, cb != NULL, arg);
