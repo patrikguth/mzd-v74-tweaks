@@ -430,7 +430,13 @@ mzd_bundle_reset_main() (
     scratch=$(mktemp -d /tmp/mzd-bundle-reset.XXXXXX) || exit 1
     trap 'rm -rf "$scratch"' 0
     mzd_components records > "$scratch/components" || exit 1
-    mzd_settings_check "$HERE/manifest.conf" "${MZD_SETTINGS_FILE:-}" || exit 1
+    # Restore also calls this hook for a bundle on the USB that was never installed.
+    # It has no saved settings; its generated payload can only match the defaults.
+    if [ -z "${MZD_SETTINGS_FILE:-}" ]; then
+        mzd_settings_normalize "$HERE/manifest.conf" > "$scratch/settings.conf" || exit 1
+        MZD_SETTINGS_FILE="$scratch/settings.conf"
+    fi
+    mzd_settings_check "$HERE/manifest.conf" "$MZD_SETTINGS_FILE" || exit 1
     tab=$(printf '\t'); number=0
     payload_dir="${PAYLOAD_DIR:-$MZD_COMPONENT_STORAGE/mzd-tweaks/shims/$ID}"
     mzd_shim_parent_ok "$payload_dir" || exit 1
