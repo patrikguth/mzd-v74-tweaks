@@ -56,8 +56,11 @@ for scenario in ['success','invalid-path','hook-stop-failure','bad-oem','unknown
     manifest=usb/'tweaks/restore-originals/manifest.conf';write(manifest,manifest.read_text().replace('target=/jci','target='+bp(internal)))
     # A real component bundle on the USB that was never installed: its reset hook
     # runs too, without saved settings, and must neither block nor change anything.
+    # An older installer may have changed the SM configs and left no .org backup.
     stock_sm='<services>\n<service name="jciBLMSettings" path="/jci/settings/example.so">\n<dependency value="other"/>\n</service>\n</services>\n'
-    for name in ['sm.conf','sm_WCP.conf']:write(internal/name,stock_sm)
+    old_sm=stock_sm.replace('<dependency value="other"/>','<environ_var env_name="LD_PRELOAD" env_value="/data_persist/oem-aa-mod/libpatch-svcjciblmsettings.so"/>')
+    for name in ['sm.conf','sm_WCP.conf']:write(internal/name,old_sm)
+    old_payload=internal/'mzd-tweaks/shims/cluster-language/libpatch.conf';write(old_payload,'not from this tweak\n')
     for name in ['manifest.conf','components.tsv']:
       path=usb/'tweaks/cluster-language'/name;text=path.read_text()
       for old,new in {'/jci/sm/':bp(internal)+'/','74d9fc389b74fb01d0cfc2615a82c782':md5(stock_sm),'030e918f5d6edcd62d196ee37b86fe99':md5(stock_sm),'/tmp/mnt/data_persist':bp(internal)}.items():text=text.replace(old,new)
@@ -136,8 +139,8 @@ esac
     checks+=1
     assert (nav/'nav.js').read_text()=='navigation stays modified\n'
     assert (nav/'nav.js.org').exists()
-    assert (internal/'sm.conf').read_text()==stock_sm and (internal/'sm_WCP.conf').read_text()==stock_sm
-    assert not (internal/'mzd-tweaks/shims/cluster-language').exists()
+    assert (internal/'sm.conf').read_text()==old_sm and (internal/'sm_WCP.conf').read_text()==old_sm
+    assert old_payload.read_text()=='not from this tweak\n'
     assert gpio.read_text()=='0\n'
     assert not list(locks.iterdir()),(scenario,list(locks.iterdir()))
     assert 'forbidden' not in (events.read_text() if events.exists() else '')

@@ -426,16 +426,14 @@ mzd_bundle_reset_main() (
     [ "$#" = 1 ] || exit 1
     phase=$1
     case "$phase" in check|prepare|finish) ;; *) exit 1 ;; esac
+    # Restore also calls this hook for a bundle that is only on the USB. Workers run
+    # from a saved package, so without its settings this bundle changed nothing. Its
+    # targets and any files in its folder belong to something else.
+    [ -n "${MZD_SETTINGS_FILE:-}" ] || exit 0
     mzd_bundle_load || exit 1
     scratch=$(mktemp -d /tmp/mzd-bundle-reset.XXXXXX) || exit 1
     trap 'rm -rf "$scratch"' 0
     mzd_components records > "$scratch/components" || exit 1
-    # Restore also calls this hook for a bundle on the USB that was never installed.
-    # It has no saved settings; its generated payload can only match the defaults.
-    if [ -z "${MZD_SETTINGS_FILE:-}" ]; then
-        mzd_settings_normalize "$HERE/manifest.conf" > "$scratch/settings.conf" || exit 1
-        MZD_SETTINGS_FILE="$scratch/settings.conf"
-    fi
     mzd_settings_check "$HERE/manifest.conf" "$MZD_SETTINGS_FILE" || exit 1
     tab=$(printf '\t'); number=0
     payload_dir="${PAYLOAD_DIR:-$MZD_COMPONENT_STORAGE/mzd-tweaks/shims/$ID}"
