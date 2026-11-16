@@ -351,3 +351,37 @@ demoClock=0;const rpmDemo=new dw.DriveDashDemo();rpmDemo.start(value=>{demoState
 assert.equal(demoState.rpm,800);
 for(const [seconds,rpm] of [[2,3200],[4,1200],[6,6200],[8,2000],[10,7600],[12,900]]){demoClock=seconds*1000;demoTick();assert.equal(demoState.rpm,rpm);}
 rpmDemo.stop();rpmDemo.start(value=>{demoState=value;},false);assert.equal(demoState.rpm,2400);
+
+const suite=fixture(false,false);
+const dictionaries=suite.window.DriveDashLanguages;
+assert.deepEqual(Object.keys(dictionaries.en_US).sort(),Object.keys(dictionaries.de_DE).sort(),'Language keys must match.');
+for(const lang of Object.values(dictionaries)) {
+ for(const field of suite.window.DriveDashData.fields) assert.ok(lang['data.'+field.key],'Missing field label: '+field.key);
+ for(const skin of suite.window.DriveDashSkins.list()) assert.ok(lang[skin.labelKey],'Missing design label: '+skin.id);
+}
+const full={source:'cmu',available:true,speedKph:88,rpm:2400,outsideC:22,coolantC:90,tripKm:123.4,avgL100:6.7,fuelPercent:50,engineLoadPercent:43,batteryPercent:81,gear:'3',gpsCourseDeg:90};
+const extreme={source:'cmu',available:true,speedKph:400,rpm:16000,outsideC:-39,coolantC:214,tripKm:42949672.92,avgL100:10000,fuelPercent:100,engineLoadPercent:100,batteryPercent:100,gear:'6',gpsCourseDeg:359};
+for(const skin of suite.window.DriveDashSkins.list()) {
+ const check=fixture(false,false,{design:skin.id},false,true);
+ for(const raw of [full,{},extreme]) {
+  for(const language of ['en_US','de_DE']) {
+   const translate=key=>dictionaries[language][key]||key;
+   const display=check.window.DriveDashModel.display(raw,check.window.DriveDashModel.settings({design:skin.id},[skin.id]),translate);
+   assert.doesNotThrow(()=>check.window.DriveDashSkins.get(skin.id).draw(check.nodes.gauge.getContext('2d'),display,translate),skin.id);
+  }
+ }
+ check.dispose();
+}
+for(const name of ['oem-style','sakura','midnight-rose','venom']) {
+ const png=fs.readFileSync(path.join(root,'skins',name+'-background.png'));
+ assert.equal(png.readUInt32BE(16),800,name+' bitmap width');assert.equal(png.readUInt32BE(20),416,name+' bitmap height');
+}
+const wrongSize=fixture(false,false,{design:'venom'},false,true);
+wrongSize.stats.images[0].width=1600;
+const prior=wrongSize.stats.drawn.length;
+wrongSize.window.DriveDashSkins.get('venom').draw(wrongSize.nodes.gauge.getContext('2d'),model.display(full,config,tr),tr);
+assert(!wrongSize.stats.drawn.slice(prior).includes(wrongSize.stats.images[0]),'Wrong-size artwork must use the fallback.');
+wrongSize.dispose();
+console.log('DRIVEDASH_SKINS_PASSED: all six designs, full/empty/extreme data, translation parity and native-size bitmap guards.');
+
+suite.dispose();

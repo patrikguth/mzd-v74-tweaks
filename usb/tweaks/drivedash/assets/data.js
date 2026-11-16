@@ -1,4 +1,4 @@
-/* Canonical SI snapshots and view-local statistics, shared by every design. */
+/* Metric snapshots and view-local statistics, shared by every design. */
 (function (global) {
     'use strict';
     var fields = [

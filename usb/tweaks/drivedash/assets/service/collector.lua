@@ -91,7 +91,7 @@ function M.create(deps)
         out.gear=({[1]='P',[2]='R',[3]='N',[4]='D'})[out.leverPosition]
         if not out.gear and out.gearNumber then out.gear=tostring(out.gearNumber)end
         out.available=out.speedKph~=nil or out.rpm~=nil
-        -- Initial AIO reference range: approximate bars, not calibrated litres.
+        -- Legacy AIO reference range: approximate bars, not calibrated litres.
         if out.fuelRaw~=nil then out.fuelPercent=math.min(100,out.fuelRaw*100/184)end
         return out
     end}

@@ -1,10 +1,10 @@
 # DriveDash development and emulator
 
-Development draft for issue #62, with a browser demo and an initial read-only
+Instrument extension for issue #62, with a browser demo and a read-only
 CMU data adapter. The installable package and single asset source now live in
 `usb/tweaks/drivedash/`. No additional AIO tweaks are bundled.
 Core readings, rendering and lifecycle were exercised on vehicle and bench CMUs
-during development. The five-skin SDK build passed the [bench acceptance run](../test-runs/2026-11-12-drivedash-five-skins-bench.md). GPS-course behavior still needs real driving; simulator checks do not replace that run.
+during development. The SDK build with OEM Style, Classic, Motorsport, Sakura and Midnight Rose passed the [bench acceptance run](../test-runs/2026-11-12-drivedash-five-skins-bench.md). GPS-course behavior still needs real driving; simulator checks do not replace that run.
 
 The first skin is named **OEM Style**, inspired by Mazda instrument clusters. The
 application is skin-independent: `skins/registry.js` manages renderers, and each
@@ -15,7 +15,7 @@ shared SDK native-menu factory, including its standard radio rows, text sizing
 and controller focus handling; DriveDash has no separate List2 adapter. Selecting a skin applies it
 without closing the app. Selections remain in their settings page with the
 selected radio value marked. Back returns to the settings overview, then to the
-gauge. The Classic and Motorsport drafts are available alongside OEM Style. Motorsport
+gauge. The Classic and Motorsport designs are available alongside OEM Style. Motorsport
 uses a segmented RPM bar, large digital speed and compact vehicle-data panels. Classic follows the first AIO-inspired
 design with an analog speed dial, inner compass, separate RPM fan and a vehicle
 statistics column. All skins use the same data model, units and translations.
@@ -28,7 +28,7 @@ switch to demo values. No legacy websocketd, CASDK installation, disclaimer patc
 watchdog changes or status-bar speedometer is used.
 
 `assets/i18n.js` is the single dictionary for the gauge, settings, units and menu
-entry. English and German are supplied for this draft; other Mazda languages use
+entry. English and German are supplied; other Mazda languages use
 English fallback until translated. Saved app choices are loaded first. Only
 fields set to Automatic are read from the Mazda GUI framework on opening;
 all-manual choices perform no app settings query. Switching a previously manual
@@ -140,7 +140,14 @@ names confirmed in the private v74 SMDB XML. They still require real-CMU checks:
 | TransmissionGearPosition | 1..6 as fallback when lever is unavailable |
 | EngineLoad | raw percent, valid range 0..100 |
 | Battery_StateOfCharge | raw / 2 percent, valid range 0..200; 254/255 unavailable |
-| FuelGaugePosition | approximate bars using the initial AIO reference maximum 184; not calibrated litres |
+| FuelGaugePosition | approximate bars using the legacy AIO reference maximum 184; not calibrated litres |
+| DR_IntakeAirTemp | raw - 40 Celsius; raw zero/255 rejected |
+| Drv1AvlFuelE | 1000 / raw L/100 km; drive average, zero rejected |
+| HVD_CumAvgFuelEff_curr | 10000 / raw L/100 km; cumulative average, zero rejected |
+| LDS position | latitude, longitude and altitude retained in native metric/degrees; heading reference unverified |
+| GPS course | bearing derived from fresh positions at least 3 metres apart while moving |
+| View statistics | elapsed/moving/idle time, observed-speed average, maxima and altitude extrema; session-local |
+
 
 Missing fields with no prior reading show `--`. Three consecutive read failures
 or out-of-range values clear a previously valid field. A successful read of zero speed/RPM remains valid: SMDB defaults
@@ -182,7 +189,7 @@ current-trip economy counter were zero at stationary idle. The average display
 now reads the stored total economy counter instead; raw 141 corresponds to about
 7.1 L/100 km, close to the dashboard's 7.2 at the time of the checks. A tank raw
 value of 91-92 was observed with the gauge slightly below half. This supports the
-initial reference bars only; full/empty calibration is not established. Both gear
+legacy reference bars only; full/empty calibration is not established. Both gear
 fields returned zero at idle, so no neutral/gear value is invented.
 
 Every SMDB command now executes through the factory `/usr/bin/env` with an explicit
@@ -216,7 +223,7 @@ samples, statistics and service polling remain unchanged. Settings, phone
 suspension and disposal cancel the redraw timer. The cleaner fixed instrument outlines were confirmed visually on the bench CMU.
 Needle motion with changing real vehicle RPM and CPU behavior still need checks.
 
-## Rendering and acquisition draft
+## Rendering and acquisition
 
 Active views request snapshots on a 250 ms period, including request duration, without overlapping requests. The production collector batches at most two fast values and one due slow value as bounded parallel, read-only SMDB processes. Slow fields rotate at most once per second; each process group keeps its one-second deadline. Valid completed fields can survive a different field timing out. All collection remains demand-driven.
 
@@ -257,3 +264,5 @@ emulator and bench display check; real-car motion acceptance remains pending.
 The animated HTTP demo also uses large RPM target steps every two seconds
 (800, 3200, 1200, 6200, 2000, 7600, 900) to make needle behavior easier to compare
 between skins. These simulated targets do not change live collection or smoothing.
+
+The saved `animated` option affects simulated browser values only; live CMU needle interpolation is always independent of it.

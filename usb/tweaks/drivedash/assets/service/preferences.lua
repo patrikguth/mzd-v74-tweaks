@@ -9,7 +9,7 @@ local function valid(value)
         assert(known,'Unknown settings field.')
     end
     assert(value.version==1,'Unsupported settings version.')
-    assert(type(value.design)=='string' and #value.design<=40 and value.design:match('^[a-z][a-z0-9_-]*$'),'Invalid design.')
+    assert(type(value.design)=='string' and #value.design<=40 and value.design:match('^[a-z][a-z0-9-]*$'),'Invalid design.')
     assert(value.language=='auto' or type(value.language)=='string' and #value.language<=8 and value.language:match('^[a-z][a-z][a-z]?_[A-Z][A-Z]$'),'Invalid language.')
     assert(value.speedUnit=='auto' or value.speedUnit=='kmh' or value.speedUnit=='mph','Invalid speed unit.')
     assert(value.tempUnit=='auto' or value.tempUnit=='C' or value.tempUnit=='F','Invalid temperature unit.')

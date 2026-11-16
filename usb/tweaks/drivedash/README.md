@@ -57,14 +57,12 @@ menus, preference persistence, native language/units and removal without sensors
 it cannot establish vehicle sensor scaling or freshness. The main instrument
 view omits the diagnostic captions; the browser preview remains simulated.
 
-Developer details and checks: [prototype notes](../../../development/drivedash/README.md).
+Developer documentation and the full data model are available in the repository:
+https://github.com/softwarecrash/mzd-v74-tweaks/tree/development/development/drivedash
+Designs share normalized vehicle data, additional temperatures, consumption
+counters, GPS and view-session statistics. Each design displays a subset.
+Vehicle trip-counter behavior and the GPS heading reference still need on-car
+verification. DriveDash is a proper name in every language.
 
-Designs share a [normalized data model](../../../development/drivedash/Data-model.md),
-including additional temperatures, consumption counters, GPS and view-session
-statistics. The BM layout displays only a subset. Vehicle trip-counter behavior
-and the GPS heading reference still need on-car verification.
-
-The development package was renamed from `speedometer` to `drivedash`. Remove
-the old Speedometer test installation before installing DriveDash; they use
-different package IDs and config owners. No automatic settings migration is
-performed. DriveDash is a proper name and remains unchanged in every language.
+The saved `animated` option controls simulated browser demo values only. It does
+not disable live needle interpolation or change collection on the CMU.

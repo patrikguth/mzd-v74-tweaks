@@ -199,6 +199,7 @@ jobs:
           node tests/tweaks/drivedash/needle.cjs
           node tests/tweaks/drivedash/system.cjs
           node tests/tweaks/drivedash/native-menu.cjs
+          node tests/tweaks/drivedash/resident.cjs
           node tests/tweaks/drivedash/live.cjs
           node tests/tweaks/drivedash/preferences.cjs
       - run: node tests/tweaks/wallpaper-manager/preview.cjs

@@ -7,7 +7,7 @@
     function base(ctx,m,t,ready){
         var i,a,r=152,x=168,y=166;
         ctx.fillStyle='#000';ctx.fillRect(0,0,800,416);
-        if(ready){ctx.drawImage(image,0,0,800,416);}
+        if(ready){ctx.drawImage(image,0,0);}
         for(i=0;i<=40;i+=1){
             a=2.2+i*2.75/40;
             var spread=i%5===0?0.018:0.009,tip=r-(i%5===0?18:9);
@@ -28,7 +28,7 @@
         ctx.font='11px DriveDashMazda, Arial, sans-serif';ctx.textAlign='right';ctx.fillStyle='#9ca4ab';ctx.fillText('by SoftWareCrash',792,408);
     }
     function draw(ctx,m,t){
-        load();var ready=!!(image&&image.complete&&image.width>0),next=[ready,m.speed,m.speedUnit,m.outside,m.coolant,m.tempUnit,m.average,m.averageUnit,m.trip,m.tripUnit,m.fuel,t('outside'),t('coolant'),t('average'),t('trip'),t('fuel'),t('rpm')].join('|'),layer,a;
+        load();var ready=!!(image&&image.complete&&image.width===800&&image.height===416),next=[ready,m.speed,m.speedUnit,m.outside,m.coolant,m.tempUnit,m.average,m.averageUnit,m.trip,m.tripUnit,m.fuel,t('outside'),t('coolant'),t('average'),t('trip'),t('fuel'),t('rpm')].join('|'),layer,a;
         if(!cache&&typeof document!=='undefined'){cache=document.createElement('canvas');cache.width=800;cache.height=416;}
         layer=cache&&cache.getContext('2d');
         if(layer){if(key!==next){base(layer,m,t,ready);key=next;}ctx.clearRect(0,0,800,416);ctx.drawImage(cache,0,0);}else{base(ctx,m,t,ready);}

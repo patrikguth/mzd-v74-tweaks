@@ -1,4 +1,4 @@
-/* Local prototype adapter delegating to the shared native menu factory. */
+/* DriveDash adapter delegating to the shared native menu factory. */
 (function (global) {
     'use strict';
     function create(options) {

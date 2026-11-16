@@ -19,3 +19,20 @@ assert(service.request('preferences',{}).language=='de_DE' and calls==0)
 local sample=service.request('sample',{});assert(sample.speedKph==0 and sample.rpm==0 and calls==1)
 assert(not pcall(service.request,'unknown',{}))
 print('DRIVEDASH_SERVICE_PASSED: existing shared runner, zero startup/settings sensor reads, persistent preferences and bounded read-only samples.')
+
+local runner=package.loaded.process
+package.loaded.process=nil
+assert(not pcall(assert(loadfile('usb/tweaks/drivedash/assets/service/entry.lua'))),'Missing shared runner must fail explicitly.')
+package.loaded.process=runner
+assert(not pcall(factory,{files=fs,config={}}),'Missing manifest config must fail explicitly.')
+local badfs={exists=function()error('Injected config read failure.')end}
+local failing=factory({files=badfs,config={preferences='/config'}})
+assert(not pcall(failing.request,'preferences',{}),'Config errors must reach the bridge.')
+local failedRunner={run=function()error('Injected runner failure.')end}
+package.loaded.process=failedRunner
+local failedFactory=assert(loadfile('usb/tweaks/drivedash/assets/service/entry.lua'))()
+local failedService=failedFactory({files=fs,config={preferences='/config'}})
+local unavailable=failedService.request('sample',{})
+assert(not unavailable.available and unavailable.rpm==nil and unavailable.speedKph==nil,'Runner failure must not invent live readings.')
+package.loaded.process=runner
+print('DRIVEDASH_SERVICE_FAILURES_PASSED: missing runner/config, config IO failure and failed collection.')

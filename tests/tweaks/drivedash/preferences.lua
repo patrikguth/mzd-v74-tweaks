@@ -20,3 +20,7 @@ content[path]=saved:gsub('\n','\r\n');assert(store.request({}).language=='de_DE'
 content[path]='  \r\n'..saved..' \t\r\n';assert(store.request({}).speedUnit=='mph','Whitespace lines accepted.');
 content[path]='';assert(store.request({}).tempUnit=='auto')
 print('DRIVEDASH_PREFERENCES_PASSED: lazy defaults, persistent reload, false values, strict fields, atomic write failure and temporary cleanup.')
+
+content[path]=nil
+value.speedUnit='kmh';value.design='custom-skin';assert(store.request({values=value}).design=='custom-skin')
+value.design='custom_skin';assert(not pcall(store.request,{values=value}),'Skin IDs follow the registry grammar.')
