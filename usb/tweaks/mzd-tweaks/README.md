@@ -14,6 +14,7 @@ Features included:
 - **Date in status bar**: Show the short date (for example `Wed 18`) below a smaller clock. The weekday follows the head unit language (English for unsupported languages). Off keeps the factory clock, which Android Auto and CarPlay always keep.
 - **Color theme**: Customize the accent and highlight color across the Mazda Connect interface (Stock Red (default), Cobalt Blue, Emerald Green, Amber Orange, Neon Violet, Hot Pink, Titanium Silver, Sunset Gold, Electric Cyan). Applied in memory without system patching.
 - **Entertainment menu order**: Customize the display order of audio sources in the factory Entertainment menu.
+- **Fuel ending time**: How long the ending screen of the [Fuel Consumption Ending Screen](../fuel-consumption-ending/README.md) tweak stays on, 5 to 30 s (default 7 s). The row appears only while version 1.1.0 or later of that tweak is installed; the check runs when the MZD Tweaks view opens. Applies at the next ignition off, no reboot.
 
 ## Configuration
 
