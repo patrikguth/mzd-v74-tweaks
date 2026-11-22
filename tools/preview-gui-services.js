@@ -256,9 +256,13 @@
             main_menu_order_custom: false,
             main_menu_order: defaultMainMenuOrder,
             audio_order_custom: false,
+            fuel_ending_delay: 7,
             audio_order: defaultAudioOrder,
             theme: 'red'
         };
+        function validDelay(value) {
+            return typeof value === 'number' && Math.floor(value) === value && value >= 5 && value <= 30;
+        }
         var initial = defaults['mzd-tweaks'] || schemaDefaults;
         var settings = stored(key, initial);
         var name;
@@ -297,6 +301,10 @@
                 } else if (name === 'main_menu_coins_size') {
                     if (!isValidCoinsSize(settings[name])) {
                         settings[name] = (initial && isValidCoinsSize(initial[name])) ? initial[name] : schemaDefaults[name];
+                    }
+                } else if (name === 'fuel_ending_delay') {
+                    if (!validDelay(settings[name])) {
+                        settings[name] = (initial && validDelay(initial[name])) ? initial[name] : schemaDefaults[name];
                     }
                 } else if (typeof settings[name] !== 'boolean') {
                     settings[name] = (initial && typeof initial[name] === 'boolean') ? initial[name] : schemaDefaults[name];
@@ -339,7 +347,8 @@
             args = args || {};
             if (operation === 'get') {
                 applyGlobals();
-                return { settings: copy(settings) };
+                // The preview has no installed packages: always offer the Fuel ending row.
+                return { settings: copy(settings), limits: { fuel_ending_delay: { min: 5, max: 30, step: 1 } } };
             }
             if (operation === 'set') {
                 if (typeof args.key !== 'string') {
@@ -369,6 +378,8 @@
                     if (!isValidCoinsSize(args.value)) {
                         throw new Error('Invalid setting value');
                     }
+                    settings[args.key] = args.value;
+                } else if (args.key === 'fuel_ending_delay' && validDelay(args.value)) {
                     settings[args.key] = args.value;
                 } else if (Object.prototype.hasOwnProperty.call(schemaDefaults, args.key) && typeof args.value === 'boolean') {
                     settings[args.key] = args.value;
