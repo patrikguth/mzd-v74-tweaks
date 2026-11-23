@@ -38,8 +38,9 @@ HOST_ROOT=$ROOT
 if (cd "$ROOT" && pwd -W) >/dev/null 2>&1; then HOST_ROOT=$(cd "$ROOT" && pwd -W); fi
 
 build() {
-    docker build -q --target "$1" -t "$IMAGE:$1" -f "$HOST_ROOT/tools/container/Dockerfile" \
-        "$HOST_ROOT/tools/container" >/dev/null
+    docker image inspect "$IMAGE:$1" >/dev/null 2>&1 || \
+        docker build -q --target "$1" -t "$IMAGE:$1" -f "$HOST_ROOT/tools/container/Dockerfile" \
+            "$HOST_ROOT/tools/container" >/dev/null
 }
 
 # Same isolation as the CI worker step: no network, read-only repository.

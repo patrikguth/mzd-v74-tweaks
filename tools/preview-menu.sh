@@ -290,6 +290,18 @@ if [ "$USE_EMU" -eq 1 ]; then
         fi
     done
 
+    # Overwrite target XML files with fresh copies from src/mazda/cmu/etc directory if they exist in emulator.
+    if [ -d "$REPO_DIR/src/mazda/cmu/etc" ]; then
+        for fresh_xml in "$REPO_DIR/src/mazda/cmu/etc/"*.xml; do
+            [ -f "$fresh_xml" ] || continue
+            xml_name=$(basename "$fresh_xml")
+            if [ -f "$EMU_DIR/etc/$xml_name" ]; then
+                cp "$fresh_xml" "$EMU_DIR/etc/$xml_name"
+                rm -f "$EMU_DIR/etc/$xml_name.orig" "$EMU_DIR/etc/$xml_name.rej"
+            fi
+        done
+    fi
+
     REGISTRY_TMP=$(mktemp /tmp/mzd-registry-records.XXXXXX)
     DEFAULTS_ENTRIES=""
 
@@ -389,6 +401,21 @@ if [ "$USE_EMU" -eq 1 ]; then
                     *) emu_target="$EMU_DIR/$comp_target" ;;
                 esac
                 patch_file="$tweak_dir/$comp_source"
+                case "$comp_target" in
+                    *.xml)
+                        target_name=$(basename "$comp_target")
+                        fresh_xml=""
+                        if [ -f "$REPO_DIR/src/mazda/cmu/etc/$target_name" ]; then
+                            fresh_xml="$REPO_DIR/src/mazda/cmu/etc/$target_name"
+                        elif [ -f "$REPO_DIR/src/mazda/cmu$comp_target" ]; then
+                            fresh_xml="$REPO_DIR/src/mazda/cmu$comp_target"
+                        fi
+                        if [ -f "$emu_target" ] && [ -n "$fresh_xml" ] && [ -f "$fresh_xml" ]; then
+                            cp "$fresh_xml" "$emu_target"
+                            rm -f "$emu_target.orig" "$emu_target.rej"
+                        fi
+                        ;;
+                esac
                 if [ -f "$emu_target" ] && [ -f "$patch_file" ]; then
                     if ! grep -q 'mzdTweaks' "$emu_target"; then
                         if [ ! -f "$emu_target.orig" ]; then
