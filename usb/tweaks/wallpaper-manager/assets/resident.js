@@ -211,7 +211,7 @@ window.MzdGuiResidents.register("wallpaper-manager",function (context) {
     var catalog = [], savedSettings = null, stagedSettings = null, saving = false, retry = null, loadSequence = 0, mutation = 0;
     var bootRetry = null, menuTimer = null, transitionTimer = null;
     var DISPLAY_OFF_CLASS = 'mzd-wallpaper-display-off';
-    var offscreenStyle = null, fwHook = null, displayOffTargets = [];
+    var offscreenStyle = null, menuShadowStyle = null, fwHook = null, displayOffTargets = [];
     function addClass(elt, name) {
         if (!elt || typeof elt.className !== 'string') { return; }
         var parts = elt.className ? elt.className.split(/\s+/) : [];
@@ -314,18 +314,33 @@ window.MzdGuiResidents.register("wallpaper-manager",function (context) {
         }
         fwHook = null;
     }
+    function setHeadStyle(current, id, css) {
+        var head = document.getElementsByTagName('head')[0] || document.head || document.body || document.documentElement;
+        if (!current && head) {
+            current = document.createElement('style');
+            current.id = id;
+            head.appendChild(current);
+        }
+        if (current && current.textContent !== css) {
+            current.textContent = css;
+        }
+        return current;
+    }
+    function removeHeadStyle(current) {
+        if (current && current.parentNode) {
+            current.parentNode.removeChild(current);
+        }
+        return null;
+    }
     function updateOffScreen(target) {
         var isCustom = (target && target !== original && core && core.snapshot().offscreen === true);
-        var head = document.getElementsByTagName('head')[0] || document.head || document.body || document.documentElement;
-        if (!offscreenStyle && head) {
-            offscreenStyle = document.createElement('style');
-            offscreenStyle.id = 'mzd-wallpaper-offscreen';
-            head.appendChild(offscreenStyle);
-        }
         var css = isCustom ? '.OffScreenCtrl.' + DISPLAY_OFF_CLASS + ', .' + DISPLAY_OFF_CLASS + ' .OffScreenCtrl { background-image: url("' + target + '") !important; background-size: 800px 480px !important; background-position: 0 0 !important; background-repeat: no-repeat !important; }' : '';
-        if (offscreenStyle && offscreenStyle.textContent !== css) {
-            offscreenStyle.textContent = css;
-        }
+        offscreenStyle = setHeadStyle(offscreenStyle, 'mzd-wallpaper-offscreen', css);
+    }
+    function updateMenuLabelShadow(target) {
+        var isCustom = !!(target && target !== original);
+        var css = isCustom ? '.MainMenuCtrl .MainMenuCtrlIconName { text-shadow: 0 0 8px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.95), 0 1px 2px rgba(0, 0, 0, 1) !important; }' : '';
+        menuShadowStyle = setHeadStyle(menuShadowStyle, 'mzd-wallpaper-menu-shadow', css);
     }
     function updateBackground() {
         var fw = window.framework, common = fw && fw.common, visible = desired;
@@ -339,6 +354,7 @@ window.MzdGuiResidents.register("wallpaper-manager",function (context) {
                 }, 500);
             }
             updateOffScreen(desired);
+            updateMenuLabelShadow(desired);
             return;
         }
         if (bootRetry) {
@@ -359,6 +375,7 @@ window.MzdGuiResidents.register("wallpaper-manager",function (context) {
             }
         }
         updateOffScreen(desired);
+        updateMenuLabelShadow(desired);
     }
     function setMenuPreview(id, frame) {
         var row = null, i, image, token;
@@ -539,10 +556,8 @@ window.MzdGuiResidents.register("wallpaper-manager",function (context) {
         desired = original;
         previewPath = null;
         updateBackground();
-        if (offscreenStyle && offscreenStyle.parentNode) {
-            offscreenStyle.parentNode.removeChild(offscreenStyle);
-        }
-        offscreenStyle = null;
+        offscreenStyle = removeHeadStyle(offscreenStyle);
+        menuShadowStyle = removeHeadStyle(menuShadowStyle);
         delete window.WallpaperManager;
     });
     function loadGallery() {
