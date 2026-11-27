@@ -806,11 +806,13 @@ test("INSTALLER_UI_TESTS", async (t) => {
       assert.equal(x.intervals[x.intervals.length - 1], null);
       installAnimation();
       assert.equal(x.nodes["dialog-state"].textContent, "Install completed");
+      assert.equal(x.nodes["dialog-dot"].className, "dot installed");
       assert.match(
         x.nodes["dialog-title"].textContent,
         /^.+ - Operation completed$/
       );
       assert.equal(x.nodes["dialog-state"].textContent, "Install completed");
+      assert.equal(x.nodes["dialog-dot"].className, "dot installed");
       assert.doesNotMatch(
         x.nodes["dialog-output"].textContent,
         /install in progress|install completed/i
@@ -834,6 +836,7 @@ test("INSTALLER_UI_TESTS", async (t) => {
     assert.equal(x.nodes["dialog-state"].textContent, "Checking configuration");
     x.pump();
     assert.equal(x.nodes["dialog-state"].textContent, "Uninstall completed");
+    assert.equal(x.nodes["dialog-dot"].className, "dot uninstalled");
     x.click("result-ok");
     x.pump();
     assert.equal(x.states["patch-example"], "uninstalled");
@@ -849,6 +852,7 @@ test("INSTALLER_UI_TESTS", async (t) => {
       /^.+ - Operation failed$/
     );
     assert.equal(x.nodes["dialog-state"].textContent, "Install failed");
+    assert.equal(x.nodes["dialog-dot"].className, "dot error");
     x.click("result-ok");
     x.pump();
     assert.equal(x.nodes.refresh.disabled, false);
@@ -879,6 +883,7 @@ test("INSTALLER_UI_TESTS", async (t) => {
         /^.+ - Manual check required$/
       );
       assert.match(x.nodes["dialog-description"].textContent, /Do NOT reboot/);
+      assert.equal(x.nodes["dialog-dot"].className, "dot error");
       x.click("result-ok");
       assert.equal(x.nodes.refresh.disabled, true);
       x.click("tweak-second-patch");
@@ -1785,6 +1790,7 @@ test("BROKEN_SAVED_UNINSTALL_UI", async (t) => {
         )
       );
       assert.equal(x.nodes["dialog-state"].textContent, "Uninstall completed");
+    assert.equal(x.nodes["dialog-dot"].className, "dot uninstalled");
       x.click("result-ok");
       x.pump();
       assert.equal(x.states.ssh, "uninstalled");
@@ -1855,6 +1861,7 @@ test("BROKEN_SAVED_UNINSTALL_UI", async (t) => {
       x.click("uninstall-action");
       x.pump();
       assert.match(x.nodes["dialog-description"].textContent, /Do NOT reboot/);
+      assert.equal(x.nodes["dialog-dot"].className, "dot error");
       x.click("result-ok");
       assert.equal(x.nodes.refresh.disabled, true);
     }
@@ -3101,6 +3108,7 @@ test("INSTALLER_UPDATES", async (t) => {
     );
     assert.equal(x.states["patch-example"], "installed");
     assert.equal(x.nodes["dialog-state"].textContent, "Update completed");
+    assert.equal(x.nodes["dialog-dot"].className, "dot installed");
   });
 
   await t.test("a refused update offer disables Update", () => {

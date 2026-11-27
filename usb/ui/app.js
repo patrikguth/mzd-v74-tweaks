@@ -650,7 +650,7 @@
             try {if(!problem)rows=infoRows(result);}catch(e){problem=String(e);}
             if(problem && canRetry){individual();return;}
             if(result && (result.exitCode===2 || result.signal)){locked=true;failedStatusName="USB scan";}
-            if(problem){scanning=false;clearLoadProgress();footer("Could not read tweaks");showResult("Cannot read tweaks",String(problem),locked,function(){});controls();return;}
+            if(problem){scanning=false;clearLoadProgress();footer("Could not read tweaks");showResult("Cannot read tweaks",String(problem),locked,function(){},"","error");controls();return;}
             tweaks=[];
             for(id in rows)if(Object.prototype.hasOwnProperty.call(rows,id))ids.push(id);
             ids.sort();
@@ -765,7 +765,7 @@
             operating=false;
             var problem=error||resultError(result), answer=result?trim(result.stdout):"";
             if(problem || (answer!=="present" && answer!=="none")) {
-                controls();showResult("Cannot uninstall",String(problem||"Invalid configuration response"),false,function(){openDetails(item);});return;
+                controls();showResult("Cannot uninstall",String(problem||"Invalid configuration response"),false,function(){openDetails(item);},"","error");return;
             }
             if(answer==="none"){item.preserveConfig=false;perform(item,"uninstall");return;}
             setDialogMode("confirm");text("dialog-title","Keep configuration?");text("dialog-state",item.name);
@@ -961,10 +961,10 @@
         };
         controls(); footer("Read the notice, then select OK or Exit."); el("action").focus();
     }
-    function showResult(title, message, critical, callback, status) {
+    function showResult(title, message, critical, callback, status, dotState) {
         el("dialog-body").className = status ? "bottom-info" : "";
         setDialogMode("result"); show("overlay",true); text("dialog-title",title);
-        el("dialog-dot").className = "dot " + (critical ? "error" : "uninstalled");
+        el("dialog-dot").className = "dot " + (dotState || (critical ? "error" : "uninstalled"));
         el("dialog-state").className = status ? "operation-status" : "";
         text("dialog-state",status || "");
         text("dialog-description", critical ? "Further actions are blocked. Do NOT reboot. Check the USB reports." : ""); clear(el("dialog-meta")); text("dialog-output",message);
@@ -1072,6 +1072,7 @@
             var status = actionName + (problem ? " failed" : " completed");
             controls(); footer(locked ? "Critical worker failure. Do NOT reboot." : status);
             var title = critical ? "Manual check required" : problem ? "Operation failed" : "Operation completed";
+            var dotState = problem ? "error" : (action === "install" || action === "update") ? "installed" : "uninstalled";
             showResult(item.name+" - "+title,message,critical,function () {
                 if (locked) return;
                 if (item.manifest.refresh_all) {refreshAll();return;}
@@ -1080,7 +1081,7 @@
                     scanning=false;controls();footer(locked ? "Critical worker failure. Do NOT reboot." : "Status updated - " + item.name);
                     if (recoveryCandidate && action==="install" && !locked) openDetails(item);
                 });
-            },status);
+            },status,dotState);
         }
         executeAction(item,action,complete,restoreHash);
     }
