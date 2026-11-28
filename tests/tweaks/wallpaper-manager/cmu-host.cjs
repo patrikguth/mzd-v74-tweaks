@@ -66,6 +66,9 @@ assert.equal(control.dataList.items[4].disabled,true);
 const offscreenStyle=head.children.find(e=>e.id==='mzd-wallpaper-offscreen');
 assert(offscreenStyle);
 assert.equal(offscreenStyle.textContent,'');
+const menuShadowStyle=head.children.find(e=>e.id==='mzd-wallpaper-menu-shadow');
+assert(menuShadowStyle);
+assert.equal(menuShadowStyle.textContent,'');
 click(4);assert.equal(saved.offscreen,false,'disabled row does not toggle');
 // 1. Gallery list items strip extension, no 'Active' detail
 click(0);assert.equal(sb,'Gallery');
@@ -82,6 +85,7 @@ assert.equal(control.dataList.items[0].text1,'Use as static background');
 assert.equal(control.dataList.items[2].text1,'Delete image');
 assert.equal(control.dataList.items[2].image1,'common/images/icons/IcnListDelete_En.png');
 click(0);assert.equal(saved.selected,imageID);assert.equal(host.WallpaperManager.snapshot().active,imageID);
+assert(menuShadowStyle.textContent.includes('.MainMenuCtrl .MainMenuCtrlIconName')&&menuShadowStyle.textContent.includes('text-shadow:'),'custom wallpaper enables dark text-shadow on main menu icon labels');
 input('back');
 // When slideshow is disabled and one picture is selected for background, show 'Background' and keep 'Slideshow' for other
 assert.equal(control.dataList.items[0].label1,'Background','shows Background detail when selected');
@@ -180,6 +184,7 @@ assert.equal(dialogConfig,null);assert.equal(records.length,1);assert.equal(sb,'
 // 9. Import from USB view and preview screen
 usbResult={status:'ready',items:[{source:'sda1',name:'photo.png',label:'photo.png'}]};
 input('back');
+click(3);assert.equal(saved.selected,null);assert.equal(menuShadowStyle.textContent,'','original background clears menu label text-shadow');
 // Pressing Back while usb-list is in flight must not reset Home focus to Gallery on completion
 holdUsb=true;
 click(2);
@@ -217,7 +222,8 @@ prepareImport(null,{ticket:'import-ticket',url:'/staged-photo.png'});flush();
 assert.equal(sb,'Gallery');assert.equal(control.dataList.items[1].text1,'photo');
 // 10. Re-enable slideshow and offscreen for resident tests
 click(1);click(1);assert.equal(saved.slides.length,2,'two slideshow images enable rotation');
-input('back');input('back');click(4);assert.equal(saved.offscreen,true);click(1);click(1);assert(saved.enabled);
+input('back');input('back');click(1);click(1);assert(saved.enabled);click(4);assert.equal(saved.offscreen,true);
+assert(menuShadowStyle.textContent.includes('.MainMenuCtrl .MainMenuCtrlIconName'),'slideshow restores menu label text-shadow');
 mmuiCalls.length=0;const queuedBefore=queue.length;input('home');assert.equal(queue.length,queuedBefore,'input home returns false and emits no native-input message');
 fw.sendEventToMmui('common','Global.IntentHome');assert.deepEqual(mmuiCalls,[{app:'common',event:'Global.IntentHome'}],'touching Home delegates to OEM sendEventToMmui');
 resident.closed();assert.equal(host.WallpaperManager.snapshot().enabled,true,'closing the manager retains resident slideshow');
@@ -228,6 +234,7 @@ const before=writes;const rotation=[...timers.entries()].find(([,t])=>t.ms===500
 assert(offscreenStyle.textContent.includes('/photo.png'),'slideshow rotation updates offscreen style');
 resident.closed();hostEvents.unload();flush();assert.equal(host.WallpaperManager,undefined);assert.equal(fw.sendEventToMmui,originalSend);assert.equal(common._defaultBgPath,'common/images/background.png');
 assert(!head.children.some(e=>e.id==='mzd-wallpaper-offscreen')&&offscreenStyle.parentNode===null,'onDispose removes #mzd-wallpaper-offscreen');
+assert(!head.children.some(e=>e.id==='mzd-wallpaper-menu-shadow')&&menuShadowStyle.parentNode===null,'onDispose removes #mzd-wallpaper-menu-shadow');
 assert.equal(intervals.size,0,'no active intervals after unload');
 // 11. bootRetry retries while fw.common or fw.common._bgDiv1 is missing
 {
