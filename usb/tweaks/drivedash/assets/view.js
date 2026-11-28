@@ -98,6 +98,9 @@
     }
     function renderGauge() {
         if (ended || suspended || !initialized || page !== 'gauge') { return; }
+        document.getElementById('settings').style.display = 'block';
+        document.getElementById('settings').title = t('settings');
+        document.getElementById('settings').setAttribute('aria-label',t('settings'));
         var now = new Date().getTime(), display = model.display(data,config,t,system);
         display.rpm = needle.value(now);
         skins.get(config.design).draw(context,display,t);
@@ -121,6 +124,7 @@
             if (!preferencesLoaded) { for (i = 0; i < settings.length; i += 1) { settings[i].disabled = true; } }
             if (preferenceError) { settings.splice(0,0,{id:'settingsError',label:t(preferenceError),disabled:true}); }
             if (!live) { settings.splice(4,0,{id:'animated',label:t('animate'),detail:t(config.animated ? 'on' : 'off')}); }
+            settings.push({id:'exit',label:t('exit')});
             return settings;
         }
         if (page === 'language') {
@@ -150,7 +154,7 @@
             row.onclick = (function (position) { return function () { choose(position); }; }(i)); root.appendChild(row);
         }
     }
-    function open(next) { source.stop(); stopNeedle(); session.pause(); page = next; focus = 0; renderMenu(); }
+    function open(next) { document.getElementById('settings').style.display = 'none'; source.stop(); stopNeedle(); session.pause(); page = next; focus = 0; renderMenu(); }
     function resume() {
         if (nativeMenu) { post({type:'drivedash-native-release'}); }
         if (sdk && sdk.setLayout) { sdk.setLayout('with-status-bar'); }
@@ -158,7 +162,9 @@
     }
     function back() { if (page === 'gauge') { return false; } if (page === 'settings') { resume(); } else { open('settings'); } return true; }
     function choose(position) {
-        var row = rows()[position]; if (!row || row.disabled || ended || !preferencesLoaded) { return; } focus = position;
+        var row = rows()[position]; if (!row || row.disabled || ended) { return; }
+        if (page === 'settings' && row.id === 'exit') { dispose(); if (sdk && sdk.close) { sdk.close(); } return; }
+        if (!preferencesLoaded) { return; } focus = position;
         if (page === 'settings') {
             if (row.id === 'animated') { config.animated = !config.animated; save(); renderMenu(); return; }
             open(row.id); return;
@@ -189,8 +195,7 @@
         if (nativeMenu) { post({type:'drivedash-native-release'}); } ended = true;
         window.removeEventListener('message',receive,false); window.removeEventListener('resize',fit,false);
     }
-    document.getElementById('settings').onclick = function () { open('settings'); };
-    document.getElementById('gauge').onclick = function () { if (!ended && !suspended && initialized && page === 'gauge') { open('settings'); } };
+    document.getElementById('settings').onclick = function () { if (!ended && !suspended && initialized && page === 'gauge') { open('settings'); } };
     document.getElementById('menu-back').onclick = back;
     window.addEventListener('message',receive,false); window.addEventListener('resize',fit,false); window.addEventListener('unload',dispose,false);
     if (sdk && sdk.setLayout) { sdk.setLayout('with-status-bar'); }

@@ -50,6 +50,7 @@ function fixture(native, live, initial, deferred, bitmap=false, locale='de_DE') 
             setLayout: value => messages.push({type:'layout',value}),
             onInput: fn => {input = fn;},
             onDispose: fn => {dispose = fn;},
+            close() {messages.push({type:'close'});},
             ready() {},
             loadLanguage: fn => fn(locale, /^(ar|he)_/.test(locale)?'rtl':'ltr'),
             getUnits: fn => {
@@ -128,7 +129,7 @@ f.dispose(); assert.equal(f.intervals.size,0); assert.equal(f.events.message,und
 
 // Native emulator path: localized rows are sent to the OEM adapter, not the HTML menu.
 const n = fixture(true);
-n.input('select','press'); n.input('select','release');
+n.input('up','release'); n.input('select','press'); n.input('select','release');
 assert.equal(n.intervals.size,0);
 const render = n.messages.find(m => m.type==='drivedash-native-render');
 assert.equal(render.menu.title,'Einstellungen'); assert.equal(render.menu.rows[0].label,'Design');
@@ -214,7 +215,7 @@ console.log('DRIVEDASH_PREVIEW_PASSED: ES5, missing data, conversions, shared i1
 
 const phone=fixture(true);assert.equal(phone.intervals.size,1);
 phone.suspend();assert.equal(phone.intervals.size,0);phone.resume();assert.equal(phone.intervals.size,1);
-phone.input('select','press');phone.input('select','release');assert.equal(phone.intervals.size,0);
+phone.input('up','release');phone.input('select','press');phone.input('select','release');assert.equal(phone.intervals.size,0);
 let before=phone.messages.filter(m=>m.type==='drivedash-native-render').length;
 phone.suspend();phone.resume();assert.equal(phone.intervals.size,0,'settings must remain paused after call');
 assert.equal(phone.messages.filter(m=>m.type==='drivedash-native-render').length,before+1,'settings rebuilt after resident release');
@@ -293,7 +294,7 @@ console.log('DRIVEDASH_ILLUSTRATED_PASSED: both themes, shared live values, tran
 for(const design of ['oem-style','classic','motorsport','sakura','midnight-rose','venom']){
  const lazy=fixture(false,false,{design},false,true);
  assert.deepEqual(lazy.stats.imageLoads,design==='classic'||design==='motorsport'?[]:['skins/'+design+'-background.png'],'Only selected skin loads its bitmap.');
- lazy.nodes.gauge.onclick();assert.equal(lazy.nodes['menu-title'].textContent,'Einstellungen','Tapping gauge opens settings.');lazy.dispose();
+ assert.equal(lazy.nodes.gauge.onclick,undefined);lazy.nodes.settings.onclick();assert.equal(lazy.nodes['menu-title'].textContent,'Einstellungen','Tapping the gear opens settings.');lazy.dispose();
 }
 
 let demoClock=0,demoTick,demoState;
@@ -311,8 +312,8 @@ failLoad(retry);retryTimer(retry,4000);failLoad(retry);
 retry.getUnitsCallback()({language:'de_DE'});
 const nativeSelect=(f,index)=>f.events.message({source:f.window.parent,data:{type:'drivedash-native-select',token:'preview-token',index}});
 const lastMenu=f=>f.messages.filter(m=>m.type==='drivedash-native-render').at(-1).menu;
-retry.nodes.gauge.onclick();assert(lastMenu(retry).rows.every(row=>row.disabled),'Settings are read-only after a failed load.');
-for(let index=0;index<lastMenu(retry).rows.length;index++)nativeSelect(retry,index);
+retry.nodes.settings.onclick();assert(lastMenu(retry).rows.filter(row=>row.id!=='exit').every(row=>row.disabled),'Settings are read-only after a failed load.');
+for(let index=0;index<lastMenu(retry).rows.length-1;index++)nativeSelect(retry,index);
 assert.equal(lastMenu(retry).page,'settings');
 assert(!retry.messages.some(m=>m.values),'Failed load cannot overwrite settings');
 assert.equal(retry.messages.filter(m=>m.operation==='preferences').length,3);
@@ -411,3 +412,29 @@ for(const [locale,expected] of [['pl_ZZ','pl_PL'],['pl','pl_PL'],['xx_XX','en_US
  assert.equal(variant.nodes.settings.textContent,dictionaries[expected].settings,locale+' fallback');variant.dispose();
 }
 console.log('DRIVEDASH_LOCALES_PASSED: 41 automatic/manual startup languages, native names, RTL menus and unknown-locale fallback.');
+
+// Touch-only exit uses the regular module close path and stops view activity.
+for (const native of [false,true]) {
+ const touchExit=fixture(native);
+ touchExit.nodes.settings.onclick();
+ if(native){
+  const rows=touchExit.messages.filter(m=>m.type==='drivedash-native-render').at(-1).menu.rows;
+  assert.equal(rows.at(-1).id,'exit');assert.equal(rows.at(-1).label,'Beenden');
+  nativeSelect(touchExit,rows.length-1);
+ }else{
+  const rows=touchExit.nodes['menu-rows'].children;
+  assert.equal(rows.at(-1).children[0].textContent,'Beenden');rows.at(-1).onclick();
+ }
+ assert.equal(touchExit.messages.filter(m=>m.type==='close').length,1);
+ assert.equal(touchExit.intervals.size,0,'Exit stops the needle and demo timers');
+ touchExit.dispose();
+}
+console.log('DRIVEDASH_TOUCH_EXIT_PASSED: last settings row closes through the SDK and stops view activity.');
+
+const centerSettings=fixture(true);
+assert.equal(centerSettings.nodes.gauge.onclick,undefined,'No whole-gauge touch target');
+centerSettings.input('up','release');assert.notEqual(centerSettings.nodes.settings.className,'controller-focused');
+assert(!centerSettings.messages.some(m=>m.type==='drivedash-native-render'));
+centerSettings.input('select','press');centerSettings.input('select','release');assert.equal(lastMenu(centerSettings).page,'settings');
+centerSettings.input('back','release');assert.equal(centerSettings.input('back','release'),false);centerSettings.dispose();
+console.log('DRIVEDASH_SETTINGS_INPUT_PASSED: direct center press, no gear focus and no whole-gauge touch target.');

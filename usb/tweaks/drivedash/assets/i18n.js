@@ -88,7 +88,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Units from Mazda settings"
+            "unitsNote": "Units from Mazda settings",
+            "exit": "Exit"
         },
         "de_DE": {
             "m": "m",
@@ -171,7 +172,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Einheiten aus Mazda-Einstellungen"
+            "unitsNote": "Einheiten aus Mazda-Einstellungen",
+            "exit": "Beenden"
         },
         "ar_SA": {
             "m": "م",
@@ -254,7 +256,8 @@
             "mi": "ميل",
             "l100": "ل/100 كم",
             "mpg": "mpg",
-            "unitsNote": "الوحدات من إعدادات مازدا"
+            "unitsNote": "الوحدات من إعدادات مازدا",
+            "exit": "خروج"
         },
         "bg_BG": {
             "m": "м",
@@ -337,7 +340,8 @@
             "mi": "мили",
             "l100": "л/100 км",
             "mpg": "mpg",
-            "unitsNote": "Единици от настройките на Mazda"
+            "unitsNote": "Единици от настройките на Mazda",
+            "exit": "Изход"
         },
         "cs_CS": {
             "m": "m",
@@ -420,7 +424,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Jednotky z nastavení Mazda"
+            "unitsNote": "Jednotky z nastavení Mazda",
+            "exit": "Ukončit"
         },
         "da_DK": {
             "m": "m",
@@ -503,7 +508,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Enheder fra Mazda-indstillinger"
+            "unitsNote": "Enheder fra Mazda-indstillinger",
+            "exit": "Afslut"
         },
         "el_GR": {
             "m": "m",
@@ -586,7 +592,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Μονάδες από τις ρυθμίσεις Mazda"
+            "unitsNote": "Μονάδες από τις ρυθμίσεις Mazda",
+            "exit": "Έξοδος"
         },
         "es_ES": {
             "m": "m",
@@ -669,7 +676,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Unidades de los ajustes de Mazda"
+            "unitsNote": "Unidades de los ajustes de Mazda",
+            "exit": "Salir"
         },
         "et_EE": {
             "m": "m",
@@ -752,7 +760,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Ühikud Mazda seadetest"
+            "unitsNote": "Ühikud Mazda seadetest",
+            "exit": "Välju"
         },
         "fi_FI": {
             "m": "m",
@@ -835,7 +844,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Yksiköt Mazdan asetuksista"
+            "unitsNote": "Yksiköt Mazdan asetuksista",
+            "exit": "Poistu"
         },
         "fr_FR": {
             "m": "m",
@@ -918,7 +928,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Unités des réglages Mazda"
+            "unitsNote": "Unités des réglages Mazda",
+            "exit": "Quitter"
         },
         "he_IL": {
             "m": "מ׳",
@@ -1001,7 +1012,8 @@
             "mi": "מייל",
             "l100": "ל׳/100 ק״מ",
             "mpg": "mpg",
-            "unitsNote": "יחידות מהגדרות Mazda"
+            "unitsNote": "יחידות מהגדרות Mazda",
+            "exit": "יציאה"
         },
         "hr_HR": {
             "m": "m",
@@ -1084,7 +1096,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Jedinice iz postavki Mazde"
+            "unitsNote": "Jedinice iz postavki Mazde",
+            "exit": "Izlaz"
         },
         "hu_HU": {
             "m": "m",
@@ -1167,7 +1180,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Mértékegységek a Mazda beállításaiból"
+            "unitsNote": "Mértékegységek a Mazda beállításaiból",
+            "exit": "Kilépés"
         },
         "id_ID": {
             "m": "m",
@@ -1250,7 +1264,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Satuan dari pengaturan Mazda"
+            "unitsNote": "Satuan dari pengaturan Mazda",
+            "exit": "Keluar"
         },
         "it_IT": {
             "m": "m",
@@ -1333,7 +1348,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Unità dalle impostazioni Mazda"
+            "unitsNote": "Unità dalle impostazioni Mazda",
+            "exit": "Esci"
         },
         "ja_JP": {
             "m": "m",
@@ -1416,7 +1432,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "マツダの設定に従う単位"
+            "unitsNote": "マツダの設定に従う単位",
+            "exit": "終了"
         },
         "lt_LT": {
             "m": "m",
@@ -1499,7 +1516,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Vienetai iš Mazda nustatymų"
+            "unitsNote": "Vienetai iš Mazda nustatymų",
+            "exit": "Išeiti"
         },
         "lv_LV": {
             "m": "m",
@@ -1582,7 +1600,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Mērvienības no Mazda iestatījumiem"
+            "unitsNote": "Mērvienības no Mazda iestatījumiem",
+            "exit": "Iziet"
         },
         "ms_MY": {
             "m": "m",
@@ -1665,7 +1684,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Unit daripada tetapan Mazda"
+            "unitsNote": "Unit daripada tetapan Mazda",
+            "exit": "Keluar"
         },
         "nl_NL": {
             "m": "m",
@@ -1748,7 +1768,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Eenheden uit Mazda-instellingen"
+            "unitsNote": "Eenheden uit Mazda-instellingen",
+            "exit": "Afsluiten"
         },
         "no_NO": {
             "m": "m",
@@ -1831,7 +1852,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Enheter fra Mazda-innstillingene"
+            "unitsNote": "Enheter fra Mazda-innstillingene",
+            "exit": "Avslutt"
         },
         "pl_PL": {
             "m": "m",
@@ -1914,7 +1936,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Jednostki z ustawień Mazdy"
+            "unitsNote": "Jednostki z ustawień Mazdy",
+            "exit": "Wyjdź"
         },
         "pt_PT": {
             "m": "m",
@@ -1997,7 +2020,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Unidades das definições Mazda"
+            "unitsNote": "Unidades das definições Mazda",
+            "exit": "Sair"
         },
         "ro_RO": {
             "m": "m",
@@ -2080,7 +2104,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Unități din setările Mazda"
+            "unitsNote": "Unități din setările Mazda",
+            "exit": "Ieșire"
         },
         "ru_RU": {
             "m": "м",
@@ -2163,7 +2188,8 @@
             "mi": "мили",
             "l100": "л/100 км",
             "mpg": "mpg",
-            "unitsNote": "Единицы из настроек Mazda"
+            "unitsNote": "Единицы из настроек Mazda",
+            "exit": "Выход"
         },
         "sk_SK": {
             "m": "m",
@@ -2246,7 +2272,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Jednotky z nastavení Mazda"
+            "unitsNote": "Jednotky z nastavení Mazda",
+            "exit": "Ukončiť"
         },
         "sr_RS": {
             "m": "м",
@@ -2329,7 +2356,8 @@
             "mi": "миља",
             "l100": "л/100 км",
             "mpg": "mpg",
-            "unitsNote": "Јединице из Mazda подешавања"
+            "unitsNote": "Јединице из Mazda подешавања",
+            "exit": "Изађи"
         },
         "sv_SE": {
             "m": "m",
@@ -2412,7 +2440,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Enheter från Mazda-inställningar"
+            "unitsNote": "Enheter från Mazda-inställningar",
+            "exit": "Avsluta"
         },
         "th_TH": {
             "m": "m",
@@ -2495,7 +2524,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "หน่วยจากการตั้งค่า Mazda"
+            "unitsNote": "หน่วยจากการตั้งค่า Mazda",
+            "exit": "ออก"
         },
         "tr_TR": {
             "m": "m",
@@ -2578,7 +2608,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Mazda ayarlarındaki birimler"
+            "unitsNote": "Mazda ayarlarındaki birimler",
+            "exit": "Çıkış"
         },
         "uk_UA": {
             "m": "м",
@@ -2661,7 +2692,8 @@
             "mi": "милі",
             "l100": "л/100 км",
             "mpg": "mpg",
-            "unitsNote": "Одиниці з налаштувань Mazda"
+            "unitsNote": "Одиниці з налаштувань Mazda",
+            "exit": "Вихід"
         },
         "zh_CN": {
             "m": "m",
@@ -2744,7 +2776,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "单位采用马自达设置"
+            "unitsNote": "单位采用马自达设置",
+            "exit": "退出"
         },
         "zh_TW": {
             "m": "m",
@@ -2827,7 +2860,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "單位採用馬自達設定"
+            "unitsNote": "單位採用馬自達設定",
+            "exit": "離開"
         },
         "en_UK": {
             "m": "m",
@@ -2910,7 +2944,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Units from Mazda settings"
+            "unitsNote": "Units from Mazda settings",
+            "exit": "Exit"
         },
         "en_AU": {
             "m": "m",
@@ -2993,7 +3028,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Units from Mazda settings"
+            "unitsNote": "Units from Mazda settings",
+            "exit": "Exit"
         },
         "es_MX": {
             "m": "m",
@@ -3076,7 +3112,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Unidades de la configuración de Mazda"
+            "unitsNote": "Unidades de la configuración de Mazda",
+            "exit": "Salir"
         },
         "fr_CN": {
             "m": "m",
@@ -3159,7 +3196,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Unités des paramètres Mazda"
+            "unitsNote": "Unités des paramètres Mazda",
+            "exit": "Quitter"
         },
         "pt_BR": {
             "m": "m",
@@ -3242,7 +3280,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "Unidades das configurações Mazda"
+            "unitsNote": "Unidades das configurações Mazda",
+            "exit": "Sair"
         },
         "mn_TW": {
             "m": "m",
@@ -3325,7 +3364,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "單位採用馬自達設定"
+            "unitsNote": "單位採用馬自達設定",
+            "exit": "離開"
         },
         "cn_HK": {
             "m": "m",
@@ -3408,7 +3448,8 @@
             "mi": "mi",
             "l100": "L/100 km",
             "mpg": "mpg",
-            "unitsNote": "單位採用馬自達設定"
+            "unitsNote": "單位採用馬自達設定",
+            "exit": "離開"
         }
     }
 };
